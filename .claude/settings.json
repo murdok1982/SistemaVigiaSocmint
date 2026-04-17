@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pip show slowapi)",
+      "Bash(python -m py_compile src/api.py src/models.py src/orchestrator.py)"
+    ]
+  }
+}

@@ -1,0 +1,201 @@
+# policy.yaml — Política Operativa del Sistema VIGÍA
+# Versión: 0.1.0
+# Última revisión: 2026-04-15
+# Clasificación: USO INTERNO
+
+# ─────────────────────────────────────────────
+# 1. MARCO LEGAL
+# ─────────────────────────────────────────────
+legal_framework:
+  jurisdiction: "España / Unión Europea"
+  applicable_laws:
+    - name: "Ley Orgánica 15/1999 / LOPD-GDD (Ley 3/2018)"
+      relevance: "Protección de datos personales de ciudadanos españoles"
+    - name: "RGPD — Reglamento (UE) 2016/679"
+      relevance: "Marco europeo de protección de datos"
+    - name: "Ley 11/2002, de 6 de mayo (CNI)"
+      relevance: "Regulación de actividades de inteligencia en España"
+    - name: "Constitución Española Art. 18"
+      relevance: "Derecho a la intimidad y protección de datos"
+    - name: "Directiva (UE) 2016/680"
+      relevance: "Tratamiento de datos por autoridades para fines de seguridad pública"
+  legal_basis_for_processing: "interés público legítimo + habilitación legal específica"
+  dpa_notification_required: true
+  judicial_authorization_required_for: ["contenido no público", "datos de tráfico", "identificación de IPs"]
+
+# ─────────────────────────────────────────────
+# 2. RECOPILACIÓN DE DATOS
+# ─────────────────────────────────────────────
+data_collection:
+  allowed_sources:
+    - type: "public_api"
+      description: "APIs oficiales con credenciales propias del organismo"
+      examples: ["Twitter/X API v2", "Meta Graph API (contenido público)"]
+    - type: "public_web"
+      description: "Contenido públicamente accesible sin autenticación"
+      restrictions: "Respetar robots.txt, no simular usuario humano"
+
+  forbidden_sources:
+    - "Contenido detrás de autenticación como tercero"
+    - "Mensajes directos o privados bajo ningún concepto"
+    - "Datos obtenidos mediante engaño o suplantación de identidad"
+    - "Scrapers que violen ToS de plataformas"
+    - "Datos comprados a terceros sin trazabilidad legal"
+
+  data_minimization:
+    principle: "Recopilar solo lo estrictamente necesario para el análisis"
+    author_id: "hashear con SHA-256 antes de almacenar"
+    location_data: "eliminar salvo que sea relevante para la amenaza"
+    profile_photos: "no procesar ni almacenar"
+    personal_relationships: "no mapear grafos sociales sin autorización específica"
+
+# ─────────────────────────────────────────────
+# 3. RETENCIÓN Y DESTRUCCIÓN DE DATOS
+# ─────────────────────────────────────────────
+retention_policy:
+  default_retention_days: 90
+  high_risk_retention_days: 365  # requiere autorización supervisor
+  destruction_method: "borrado seguro con sobrescritura (estándar DoD 5220.22-M)"
+  review_schedule: "revisión mensual de datos retenidos"
+  legal_hold: "suspender destrucción si hay proceso judicial activo"
+
+# ─────────────────────────────────────────────
+# 4. UMBRALES DE ESCALADA
+# ─────────────────────────────────────────────
+escalation_thresholds:
+  VERDE:
+    risk_score_range: [0.0, 0.30]
+    description: "Sin indicadores relevantes o contexto claramente no amenazante"
+    action: "archivar"
+    human_review_required: false
+    review_window_hours: null
+
+  AMARILLO:
+    risk_score_range: [0.30, 0.50]
+    description: "Indicadores débiles, contexto ambiguo o lenguaje hiperbólico"
+    action: "cola_revision_estandar"
+    human_review_required: true
+    review_window_hours: 48
+
+  NARANJA:
+    risk_score_range: [0.50, 0.75]
+    description: "Indicadores claros con contexto preocupante, posible intención"
+    action: "cola_revision_prioritaria"
+    human_review_required: true
+    review_window_hours: 4
+    notify_supervisor: true
+
+  ROJO:
+    risk_score_range: [0.75, 1.0]
+    description: "Múltiples indicadores simultáneos o amenaza directa e inminente"
+    action: "escalada_inmediata"
+    human_review_required: true
+    review_window_hours: 1
+    notify_supervisor: true
+    notify_chain_of_command: true
+    potential_law_enforcement_referral: true  # siempre con autorización
+
+# ─────────────────────────────────────────────
+# 5. APROBACIÓN HUMANA
+# ─────────────────────────────────────────────
+human_approval:
+  principle: "VIGÍA no toma acciones operativas autónomas"
+
+  auto_approved_actions:  # el sistema puede ejecutar sin consulta
+    - "clasificar contenido público"
+    - "calcular risk_score"
+    - "generar informe de alerta"
+    - "archivar alertas VERDE tras periodo de revisión"
+
+  requires_analyst_approval:
+    - "escalar alerta a nivel superior"
+    - "marcar perfil como 'de interés'"
+    - "solicitar información adicional a plataforma"
+    - "compartir informe con otra unidad"
+
+  requires_supervisor_approval:
+    - "retener datos más allá de 90 días"
+    - "solicitar datos no públicos mediante proceso legal"
+    - "referir caso a fuerzas y cuerpos de seguridad"
+    - "iniciar monitoreo continuado de un individuo"
+
+  requires_legal_authorization:
+    - "acceder a datos de tráfico o metadatos de comunicaciones"
+    - "solicitar identificación de usuario anónimo a plataforma"
+    - "cruzar datos con otras bases de datos gubernamentales"
+
+# ─────────────────────────────────────────────
+# 6. ACCIONES PROHIBIDAS (NUNCA)
+# ─────────────────────────────────────────────
+prohibited_actions:
+  - action: "crear_identidad_falsa"
+    description: "Crear cuentas en redes sociales para infiltrar comunidades"
+    reason: "Ilegal en la mayoría de jurisdicciones, viola ToS de plataformas"
+
+  - action: "manipulacion_psicologica"
+    description: "Interactuar con sujetos para obtener información mediante engaño"
+    reason: "Requiere autorización judicial específica para operaciones encubiertas"
+
+  - action: "perfilado_religioso"
+    description: "Clasificar individuos como sospechosos por su religión"
+    reason: "Discriminación inconstitucional, Art. 16 CE libertad religiosa"
+
+  - action: "perfilado_politico"
+    description: "Clasificar como amenaza por opiniones políticas sin indicadores de violencia"
+    reason: "Art. 16 CE libertad ideológica, derecho fundamental"
+
+  - action: "acceso_comunicaciones_privadas"
+    description: "Leer mensajes directos, grupos privados o contenido no público"
+    reason: "Art. 18.3 CE secreto de comunicaciones, requiere autorización judicial"
+
+  - action: "identificacion_biometrica"
+    description: "Usar reconocimiento facial u otros datos biométricos"
+    reason: "RGPD Art. 9, datos sensibles, prohibición general sin base legal específica"
+
+  - action: "publicacion_en_rrss"
+    description: "Publicar, comentar o interactuar en nombre de cualquier persona o entidad"
+    reason: "Fuera del mandato operativo del sistema"
+
+  - action: "compartir_sin_autorizacion"
+    description: "Transferir datos a terceros sin cadena de autorización documentada"
+    reason: "RGPD Art. 44-49, transferencias internacionales"
+
+# ─────────────────────────────────────────────
+# 7. AUDITORÍA
+# ─────────────────────────────────────────────
+audit:
+  mandatory: true
+  log_every_action: true
+
+  required_fields:
+    - timestamp_utc
+    - agent_id
+    - action_type
+    - input_hash       # hash del input, no el input en claro si contiene datos personales
+    - output_summary
+    - risk_score
+    - alert_level
+    - human_reviewer   # null si no ha sido revisado aún
+    - decision         # null si pendiente
+    - justification
+
+  log_storage: "base de datos local, cifrada en reposo"
+  log_integrity: "firma HMAC de cada entrada para detectar manipulación"
+  external_audit: "revisión trimestral por responsable de cumplimiento"
+
+# ─────────────────────────────────────────────
+# 8. SUPERVISIÓN
+# ─────────────────────────────────────────────
+oversight:
+  daily_review: "supervisor debe revisar cola de alertas pendientes cada 24h"
+  weekly_report: "informe semanal de métricas al responsable operativo"
+  false_positive_tracking: "registrar y analizar falsos positivos para mejorar scoring"
+  model_review_schedule: "revisión trimestral de indicadores y umbrales"
+  ethics_committee: "revisión semestral por comité de ética/cumplimiento"
+
+  kpis_to_track:
+    - tasa_falsos_positivos
+    - tiempo_medio_revision_humana
+    - distribucion_por_nivel_alerta
+    - cobertura_por_plataforma
+    - alertas_derivadas_a_autoridades
