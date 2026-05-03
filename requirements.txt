@@ -1,8 +1,33 @@
 fastapi==0.115.12
 uvicorn[standard]==0.34.0
 pydantic==2.11.3
+pydantic-settings==2.6.1
 httpx==0.28.1
 python-dotenv==1.1.0
-aiosqlite==0.20.0
-# Requerido por FastAPI para parsear form data y security headers
+# Base de datos
+sqlalchemy==2.0.38
+psycopg2-binary==2.9.10
+asyncpg==0.30.0
+alembic==1.14.0
+# Autenticación y seguridad
+python-jose[cryptography]==3.4.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
 python-multipart==0.0.20
+# Caché y rate limiting
+redis==5.2.1
+hiredis==3.1.0
+# ML y análisis
+scikit-learn==1.6.1
+numpy==2.2.4
+scipy==1.15.2
+joblib==1.4.2
+# Utilidades
+python-dateutil==2.9.0
+pytz==2025.1
+# Logging y monitoreo
+structlog==25.1.0
+# Cifrado
+cryptography==44.0.0
+# Validación de configuración
+pydantic-settings==2.6.1

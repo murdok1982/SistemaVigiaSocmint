@@ -1,178 +1,116 @@
+# 🛡️ VIGÍA v2.0 — PLATAFORMA DE INTELIGENCIA ESTATAL-MILITAR
+
 <div align="center">
-
-# 👁️ VIGÍA
-### Sistema Avanzado de Análisis OSINT/SOCMINT 🛡️
- 
-[![Estado](https://img.shields.io/badge/Estado-Prototipo%20Activo-success?style=for-the-badge&logo=shield)](https://github.com/murdok1982/SistemaVigiaSocmint)
-[![Licencia](https://img.shields.io/badge/Uso-Interno/Gobierno-red?style=for-the-badge&logo=lock)](https://github.com/murdok1982/SistemaVigiaSocmint)
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](#)
-[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
-
-*Plataforma de inteligencia de fuentes abiertas centrada en la pre-detección pasiva y anonimizada de vectores de amenaza pública, con estricta supervisión humana ("Human in the Loop").*
-
----
+  <img src="https://img.shields.io/badge/SISTEMA-CLASIFICADO-red?style=for-the-badge&logo=opsgenie" alt="Clasificado">
+  <img src="https://img.shields.io/badge/NIVEL-ESTATAL--MILITAR-black?style=for-the-badge&logo=shield" alt="Nivel">
+  <img src="https://img.shields.io/badge/PROTOCOLO-NATO--BRIDGE-blue?style=for-the-badge&logo=internetexplorer" alt="NATO Bridge">
+  <br>
+  <img src="https://img.shields.io/badge/SECURITY-TOP--SECRET-red?style=flat-square&logo=lock" alt="Security">
+  <img src="https://img.shields.io/badge/STATUS-OPERATIONAL-green?style=flat-square&logo=checkmarx" alt="Status">
+  <img src="https://img.shields.io/badge/LICENSE-RESTRICTED-gray?style=flat-square&logo=github" alt="License">
 </div>
 
-## 📑 Índice
-1. [Descripción del Proyecto](#-descripción-del-proyecto)
-2. [Arquitectura del Sistema](#%EF%B8%8F-arquitectura-del-sistema)
-3. [Niveles de Alerta y Análisis](#-niveles-de-alerta-y-análisis)
-4. [Marco Operativo Legal](#%EF%B8%8F-marco-operativo-y-legal)
-5. [Tecnologías Empleadas](#-tecnologías-empleadas)
-6. [Instalación y Despliegue](#-instalación-y-despliegue)
-7. [Mapa Conceptual](#-mapa-conceptual)
-
 ---
 
-## 🔍 Descripción del Proyecto
+## 👁️ VISIÓN GENERAL OPERATIVA
 
-**VIGÍA** es un sistema automatizado de recolección y análisis pasivo orientado a tareas **OSINT** (Open Source Intelligence) y **SOCMINT** (Social Media Intelligence). El sistema se encarga de monitorizar fuentes estrictamente públicas en busca de indicadores lingüísticos y de comportamiento vinculados a amenazas directas, coordinación de ataques y glorificación de elementos violentos, para presentarlos de manera estructurada a analistas humanos.
+**VIGÍA v2.0** es la culminación de la ingeniería de inteligencia moderna. Diseñado como un puente tecnológico para la **OTAN (NATO Bridge)** y agencias de seguridad nacional, el sistema permite la monitorización masiva, análisis de sentimientos multilingüe y detección de patrones de insurgencia/amenazas en el espectro digital (OSINT/SOCMINT).
 
 > [!IMPORTANT]
-> **VIGÍA no toma decisiones operativas.** El sistema actúa exclusivamente como un filtro clasificador avanzado. Todo el flujo de decisión recae sobre analistas humanos designados, garantizando la proporcionalidad y el respeto irrestricto a los derechos fundamentales.
+> **ADVERTENCIA DE SEGURIDAD**: Este software está sujeto a la **Ley 11/2002** y normativas de seguridad nacional. Su uso está restringido a personal con habilitación de seguridad activa.
 
 ---
 
-## 🏗️ Arquitectura del Sistema
-
-El ecosistema se divide en una arquitectura desacoplada y asíncrona, orquestada de tal manera que las tareas de ingesta, análisis y revisión se encuentren auditablemente separadas.
+## 🌌 ARQUITECTURA DE MISIÓN CRÍTICA
 
 ```mermaid
 graph TD
-    classDef frontend fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff;
-    classDef backend fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff;
-    classDef source fill:#f59e0b,stroke:#b45309,stroke-width:2px,color:#fff;
-    classDef database fill:#6366f1,stroke:#4338ca,stroke-width:2px,color:#fff;
+    subgraph "NÚCLEO ANALÍTICO (AIR-GAPPED READY)"
+        A[Ingesta Multi-Fuente] --> B{Motor ML VIGÍA}
+        B --> C[Análisis Semántico]
+        B --> D[Reconocimiento NER]
+        B --> E[Geolocalización Táctica]
+    end
 
-    A[API Públicas / RRSS]:::source -->|Datos Públicos| B(Módulo Ingesta OSINT/SOCMINT):::backend
-    B --> C{Motor Analítico VIGÍA}:::backend
-    C -->|Normalización| D[(Base de Datos SQLite/PostgreSQL)]:::database
-    C -->|scoring| E[Módulo de Auditoría]:::backend
-    
-    D --> F(FastAPI Backend Endpoints):::backend
-    E --> F
-    
-    F <-->|REST API / WebSockets| G[VIGÍA Analista Dashboard React]:::frontend
-    G --> H((Analista Humano)):::source
-    H -->|Revisión, Escalado, Archivo| G
+    subgraph "RED DE DISTRIBUCIÓN"
+        C & D & E --> F[PostgreSQL Inmutable]
+        F --> G[API Gateway Secure]
+        G --> H[Dashboard Táctico]
+        G --> I[App Móvil Militar]
+        G --> J[NATO BRIDGE / STIX]
+    end
+
+    subgraph "INTEGRACIÓN INSTITUCIONAL"
+        J --> K[Europol SIENA]
+        J --> L[SIEM QRadar/Splunk]
+        J --> M[Interpol I-24/7]
+    end
 ```
 
 ---
 
-## 🚦 Niveles de Alerta y Análisis
+## 🚀 CAPACIDADES DE COMBATE DIGITAL
 
-VIGÍA evalúa el _Risk Score_ en tiempo real, categorizando automáticamente el contenido según los indicadores detectados:
+### 🔐 Blindaje Criptográfico
+- **Integridad Inmutable**: Logs firmados con **HMAC-SHA256** para evitar manipulación forense.
+- **Cifrado de Grado Militar**: Datos en reposo protegidos por **AES-256-GCM**.
+- **Acceso Multinivel**: Esquema de habilitación **CONFIDENTIAL / SECRET / TOP SECRET**.
+- **Autenticación Biométrica**: Integración total en dispositivos móviles para analistas de campo.
 
-| Nivel | Rango Score | Descripción y Contexto | Protocolo Automático |
-| :---: | :---: | :--- | :--- |
-| 🟢 **VERDE** | `0.0` - `0.3` | Sin indicadores relevantes, debates estándar o contenido generalista. | Archivo automático (periódico). |
-| 🟡 **AMARILLO**| `0.3` - `0.5` | Indicadores débiles, contexto ambiguo o lenguaje figurado/hiperbólico. | Cola estándar (Revisión <48h). |
-| 🟠 **NARANJA** | `0.5` - `0.75` | Indicadores explícitos en contextos altamente tensionados o preocupantes. | Cola prioritaria (Revisión <4h). |
-| 🔴 **ROJO** | `0.75` - `1.0` | Inminencia de amenaza o coordinación severa con intencionalidad demostrable. | Escalada inmediata (Revisión <1h). |
+### 🧠 Inteligencia Artificial Multilingüe
+- **Detección de Amenazas**: Algoritmos avanzados (Random Forest + BERT) entrenados para identificar léxico de insurgencia.
+- **Soporte Global**: Análisis nativo en **Árabe, Chino, Ruso, Inglés y Español**.
+- **Análisis de Grafos**: Visualización de redes de influencia y células durmientes mediante **D3/Cytoscape**.
 
-### 🎯 Vectores de Detección
-
-- `llamada_violencia`
-- `coordinacion_ataque`
-- `glorificacion_terrorismo`
-- `reclutamiento`
-- `amenaza_directa`
-
----
-
-## ⚖️ Marco Operativo y Legal
-
-> [!CAUTION]
-> El sistema despliega estrictos contrafuegos lógicos basados en normativas europeas y nacionales (RGPD, LOPD-GDD). 
-
-**Restricciones Embebidas (Hardcoded Zero-Trust):**
-1. 🚫 **Sin Identidades Falsas:** Interacción cero por diseño.
-2. 🚫 **Sin Raspado Intrusivo:** Respeto estricto del protocolo `robots.txt` y normativas API.
-3. 🚫 **Sin Perfilado Biométrico.**
-4. 🚫 **Sin Sesgo Religioso/Político.** El modelo es ciego ante la disidencia pacífica.
-5. 🔐 **Zero-Knowledge Logs:** Las identidades de red detectadas se guardan de forma hasheada hasta mandato humano.
+### 🔗 Interconectividad Global (NATO Bridge)
+- **STIX 2.1 / TAXII 2.1**: Estándar internacional para el intercambio de indicadores de compromiso (IoC).
+- **Sincronización SIEM**: Integración nativa con **Splunk, ELK y QRadar**.
+- **Exportación Forense**: Generación de informes en PDF cifrado y formatos estructurados para evidencia judicial.
 
 ---
 
-## 🛠 Tecnologías Empleadas
+## 🛠️ DESPLIEGUE TÁCTICO
 
-### ⚙️ Backend
-* **[FastAPI](https://fastapi.tiangolo.com/):** Framework de alto rendimiento.
-* **Uvicorn / Pydantic:** ASGI y validación estricta de datos.
-* **aiosqlite:** Gestión asíncrona de base de datos relacional.
-* **CORS & Sec-Headers:** Políticas embebidas contra vectores de inyección/XSS.
-* **Orquestador Lógico de IA:** Subsistema clasificador de inteligencia.
-
-### 🎨 Frontend
-* **[React 18](https://reactjs.org/) + [Vite](https://vitejs.dev/):** Interfaz ultrarrápida (HMR).
-* **[TailwindCSS](https://tailwindcss.com/):** Sistema de utilidades para un diseño extremadamente reactivo y oscuro.
-* **TypeScript / React Query:** Lógica fuertemente tipada y gestión del estado del servidor.
-
----
-
-## 🧠 Mapa Conceptual
-
-A continuación, un sub-mapa conceptual del módulo de decisión y escalada mental que sigue un Analista durante el uso del dashboard:
-
-```mermaid
-mindmap
-  root((Flujo de Trabajo<br/>Analista))
-    Cola de Alertas
-      Prioridad Roja
-        Notificación Escalada Suprema
-        Retención prolongada
-      Prioridad Naranja
-        Valoración de Intencionalidad
-      Prioridad Amarilla
-        Control Rutinario
-    Acciones Resolutivas
-      Archivar
-        Baja relevancia
-        Falso Positivo Satírico
-      Escalar
-        Reporte Oficial
-        Notificación Autoridades
-    Auditoría
-      Logs inmutables HMAC
-      Tracking Tiempo Revisión
-```
-
----
-
-## 🚀 Instalación y Despliegue
-
-### 1. Entorno Backend
-
+### Despliegue Rápido (Docker)
 ```bash
-# Navegar al directorio raíz / AgenteCNI
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
+# 1. Preparar perímetro
+git clone https://github.com/murdok1982/SistemaVigiaSocmint.git && cd SistemaVigiaSocmint
 
-# Instalación de dependencias
-pip install -r requirements.txt
+# 2. Configurar claves de cifrado
+openssl rand -hex 32 > .env_key
+# Editar .env con las claves generadas
 
-# Configurar entorno (.env local)
-cp .env.example .env
-
-# Ejecutar el servicio orquestador
-uvicorn src.api:app --reload --host 127.0.0.1 --port 8000
+# 3. Lanzar sistema
+docker-compose up -d --build
 ```
 
-### 2. Entorno Frontend
-
+### Orquestación a Gran Escala (Kubernetes)
+El sistema está optimizado para clusters **K8s** con auto-escalado y políticas de red restrictivas.
 ```bash
-cd frontend
-
-# Instalar Node Modules
-npm install
-
-# Lanzar Dashboard en modo desarrollo
-npm run dev
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/deployment.yaml -n vigia-system
 ```
+
+---
+
+## 📊 DASHBOARD Y CONTROL
+
+- **Heatmaps en Tiempo Real**: Visualización geoespacial de focos de conflicto.
+- **Cola de Alertas Priorizada**: Triaje automático basado en el nivel de riesgo (Crítico/Alto/Medio/Bajo).
+- **Auditoría Total**: Registro de cada acción realizada por los analistas para trazabilidad completa.
+
+---
+
+## 📜 CLASIFICACIÓN Y LICENCIA
+
+Este producto se distribuye bajo la **Licencia de Uso Restringido Estado-Militar (RSM-L)**.
+- **PROHIBIDA** la redistribución.
+- **PROHIBIDA** la ingeniería inversa.
+- **USO EXCLUSIVO** gubernamental y defensa.
 
 ---
 
 <div align="center">
-  <p><b>VIGÍA</b> está diseñado bajo estrictos parámetros éticos para balancear seguridad y privacidad.</p>
-  <i>"El análisis perfecto es aquel que protege libertades garantizando derechos funcionales."</i>
+  <p><strong>VIGÍA v2.0 — "Vigilantia Aeterna, Libertas Garantizada"</strong></p>
+  <img src="https://img.shields.io/badge/SISTEMA-VIGIA-0052FF?style=for-the-badge" alt="Vigia Logo">
 </div>

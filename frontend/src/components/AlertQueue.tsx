@@ -1,17 +1,9 @@
-import type { AlertFilters, AlertListItem, AlertStatus, RiskLevel } from '@/lib/types'
+import { useState } from 'react'
+import type { AlertListItem, AlertFilters } from '@/lib/types'
 import { AlertCard } from './AlertCard'
-import { Inbox, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Filter, Shield } from 'lucide-react'
 
-const RISK_LEVELS: RiskLevel[] = ['ROJO', 'NARANJA', 'AMARILLO', 'VERDE']
-const PLATFORMS = ['Twitter', 'Telegram', 'Facebook', 'Reddit', 'Web']
-const STATUSES: { value: AlertStatus; label: string }[] = [
-  { value: 'PENDIENTE',      label: 'Pendiente' },
-  { value: 'ESCALADA',       label: 'Escalada' },
-  { value: 'ARCHIVADA',      label: 'Archivada' },
-  { value: 'FALSO_POSITIVO', label: 'Falso positivo' },
-]
-
-interface AlertQueueProps {
+interface Props {
   alerts: AlertListItem[]
   isLoading: boolean
   isError: boolean
@@ -20,107 +12,134 @@ interface AlertQueueProps {
   total: number
   page: number
   pageSize: number
-  onPageChange: (p: number) => void
+  onPageChange: (page: number) => void
 }
 
-export function AlertQueue({
-  alerts, isLoading, isError, filters, onFiltersChange,
-  total, page, pageSize, onPageChange,
-}: AlertQueueProps) {
-  const totalPages = Math.ceil(total / pageSize)
+export function AlertQueue({ alerts, isLoading, isError, filters, onFiltersChange, total, page, onPageChange }: Props) {
+  const [showFilters, setShowFilters] = useState(false)
+  const totalPages = Math.ceil(total / (filters.page_size || 20))
 
   return (
-    <section aria-label="Cola de alertas">
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div>
-          <label htmlFor="filter-level" className="sr-only">Filtrar por nivel</label>
-          <select
-            id="filter-level"
-            value={filters.risk_level ?? ''}
-            onChange={(e) => onFiltersChange({ ...filters, risk_level: (e.target.value as RiskLevel) || undefined, page: 1 })}
-            className="bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
           >
-            <option value="">Todos los niveles</option>
-            {RISK_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
+            <Filter size={14} />
+            Filtros
+          </button>
+          {filters.risk_level && (
+            <span className="px-2 py-1 text-xs rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/50">
+              {filters.risk_level}
+            </span>
+          )}
         </div>
-
-        <div>
-          <label htmlFor="filter-platform" className="sr-only">Filtrar por plataforma</label>
-          <select
-            id="filter-platform"
-            value={filters.platform ?? ''}
-            onChange={(e) => onFiltersChange({ ...filters, platform: e.target.value || undefined, page: 1 })}
-            className="bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
-          >
-            <option value="">Todas las plataformas</option>
-            {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
+        <div className="text-xs text-slate-400">
+          {total} alertas totales
         </div>
-
-        <div>
-          <label htmlFor="filter-status" className="sr-only">Filtrar por estado</label>
-          <select
-            id="filter-status"
-            value={filters.status ?? ''}
-            onChange={(e) => onFiltersChange({ ...filters, status: (e.target.value as AlertStatus) || undefined, page: 1 })}
-            className="bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
-          >
-            <option value="">Todos los estados</option>
-            {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
-        </div>
-
-        <span className="ml-auto text-sm text-slate-400 self-center">
-          {total} alerta{total !== 1 ? 's' : ''}
-        </span>
       </div>
 
-      {isLoading && (
-        <div className="flex items-center justify-center py-16 text-slate-400" role="status">
-          <Loader2 className="animate-spin mr-2" size={20} aria-hidden="true" />
-          Cargando alertas...
+      {/* Filtros expandibles */}
+      {showFilters && (
+        <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Nivel de Riesgo</label>
+              <select
+                value={filters.risk_level || ''}
+                onChange={(e) => onFiltersChange({ ...filters, risk_level: e.target.value as any || undefined })}
+                className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm text-slate-100"
+              >
+                <option value="">Todos</option>
+                <option value="ROJO">ROJO</option>
+                <option value="NARANJA">NARANJA</option>
+                <option value="AMARILLO">AMARILLO</option>
+                <option value="VERDE">VERDE</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Plataforma</label>
+              <select
+                value={filters.platform || ''}
+                onChange={(e) => onFiltersChange({ ...filters, platform: e.target.value || undefined })}
+                className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm text-slate-100"
+              >
+                <option value="">Todas</option>
+                <option value="twitter">Twitter</option>
+                <option value="telegram">Telegram</option>
+                <option value="reddit">Reddit</option>
+                <option value="facebook">Facebook</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Estado</label>
+              <select
+                value={filters.status || ''}
+                onChange={(e) => onFiltersChange({ ...filters, status: e.target.value as any || undefined })}
+                className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm text-slate-100"
+              >
+                <option value="">Todos</option>
+                <option value="PENDIENTE">PENDIENTE</option>
+                <option value="ESCALADA">ESCALADA</option>
+                <option value="ARCHIVADA">ARCHIVADA</option>
+                <option value="FALSO_POSITIVO">FALSO POSITIVO</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={() => onFiltersChange({ page: 1, page_size: 20 })}
+              className="px-3 py-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              Limpiar filtros
+            </button>
+          </div>
         </div>
       )}
 
-      {isError && !isLoading && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-center text-red-400" role="alert">
-          Error al cargar alertas. Verifica la conexión con el backend.
+      {/* Lista de alertas */}
+      {isLoading ? (
+        <div className="text-center py-8 text-slate-500">Cargando alertas...</div>
+      ) : isError ? (
+        <div className="text-center py-8 text-red-400">Error cargando alertas</div>
+      ) : alerts.length === 0 ? (
+        <div className="text-center py-8 text-slate-500">
+          <Shield size={48} className="mx-auto mb-2 text-slate-600" />
+          No hay alertas que coincidan con los filtros
         </div>
-      )}
-
-      {!isLoading && !isError && alerts.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-slate-500">
-          <Inbox size={40} aria-hidden="true" className="mb-3" />
-          <p className="text-sm">No hay alertas que coincidan con los filtros.</p>
-        </div>
-      )}
-
-      {!isLoading && !isError && alerts.length > 0 && (
+      ) : (
         <div className="space-y-3">
-          {alerts.map((alert) => <AlertCard key={alert.id} alert={alert} />)}
+          {alerts.map((alert) => (
+            <AlertCard key={alert.id} alert={alert} />
+          ))}
         </div>
       )}
 
+      {/* Paginación */}
       {totalPages > 1 && (
-        <nav className="flex items-center justify-between mt-6 pt-4 border-t border-slate-700" aria-label="Paginación">
+        <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1}
-            className="px-4 py-2 text-sm rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="p-1.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Anterior
+            <ChevronLeft size={16} />
           </button>
-          <span className="text-sm text-slate-400">Página {page} de {totalPages}</span>
+          <span className="text-sm text-slate-300">
+            Página {page} de {totalPages}
+          </span>
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages}
-            className="px-4 py-2 text-sm rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="p-1.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Siguiente
+            <ChevronRight size={16} />
           </button>
-        </nav>
+        </div>
       )}
-    </section>
+    </div>
   )
 }

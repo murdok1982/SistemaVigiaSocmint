@@ -9,35 +9,39 @@ import type {
   ReviewRequest,
   ReviewResponse,
   SystemStats,
+  LoginRequest,
+  LoginResponse,
 } from './types'
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:8000'
-// VITE_API_KEY se configura en .env.local (nunca commitear el valor real)
 const API_KEY = (import.meta.env.VITE_API_KEY as string | undefined) ?? ''
+const JWT_TOKEN = localStorage.getItem('access_token') ?? ''
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`
 
-  // Añadir X-API-Key en todas las peticiones de escritura (POST/PUT/DELETE)
-  const isWriteMethod = options?.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method.toUpperCase())
-  const authHeaders: Record<string, string> = isWriteMethod && API_KEY ? { 'X-API-Key': API_KEY } : {}
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options?.headers as Record<string, string>,
+  }
+
+  // Añadir JWT token si está disponible
+  if (JWT_TOKEN && !path.includes('/auth/')) {
+    headers['Authorization'] = `Bearer ${JWT_TOKEN}`
+  } else if (!path.includes('/auth/') && API_KEY) {
+    headers['X-API-Key'] = API_KEY
+  }
 
   const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders,
-      ...options?.headers,
-    },
     ...options,
+    headers,
   })
 
   if (!response.ok) {
-    // No exponer el body completo del error al usuario final — solo el status
     const body = await response.text()
     let userMessage: string
     try {
       const parsed = JSON.parse(body) as { detail?: string }
-      // Usar detail de FastAPI si existe, sin stack traces
       userMessage = parsed.detail ?? `Error ${response.status}`
     } catch {
       userMessage = `Error ${response.status}`
@@ -55,6 +59,22 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 }
 
 export const api = {
+  // Auth
+  login(credentials: LoginRequest): Promise<LoginResponse> {
+    return request<LoginResponse>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    })
+  },
+
+  refreshToken(refreshToken: string): Promise<LoginResponse> {
+    return request<LoginResponse>('/api/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+  },
+
+  // Alerts
   getAlerts(filters: AlertFilters = {}): Promise<AlertsResponse> {
     const query = buildQuery({
       risk_level: filters.risk_level,
@@ -77,6 +97,7 @@ export const api = {
     })
   },
 
+  // Audit
   getAuditLog(filters: AuditFilters = {}): Promise<AuditLogResponse> {
     const query = buildQuery({
       date_from: filters.date_from,
@@ -89,6 +110,7 @@ export const api = {
     return request<AuditLogResponse>(`/api/audit-log${query}`)
   },
 
+  // System
   getHealth(): Promise<SystemStats> {
     return request<SystemStats>('/api/health')
   },
@@ -101,4 +123,15 @@ export const api = {
     })
     return request<OrchestratorResponse>(`/api/analyze${query}`, { method: 'POST' })
   },
+
+  // Analysts (Admin)
+  createAnalyst(data: { username: string; email: string; full_name: string; password: string; role?: string }): Promise<{ message: string; analyst_id: string }> {
+    return request<{ message: string; analyst_id: string }>('/api/analysts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
 }
+
+// Export types for convenience
+export type { LoginRequest, LoginResponse }

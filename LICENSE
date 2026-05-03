@@ -1,0 +1,33 @@
+# RESTRICTED STATE-MILITARY USE ONLY LICENSE (RSM-L)
+
+Version 1.0, May 2026
+
+## 1. PREAMBLE
+This software, "VIGÍA v2.0 - OSINT/SOCMINT Intelligence System", is classified as high-level intelligence technology. Its purpose is the protection of national security, public order, and the defense of constitutional values within the framework of State-Military operations.
+
+## 2. AUTHORIZED USERS
+License to use this software is granted EXCLUSIVELY to:
+- Recognized National Intelligence Agencies.
+- Ministry of Defense and Armed Forces departments.
+- Law Enforcement Agencies (LEA) with judicial authorization.
+- Authorized NATO-bridge partner entities for international security cooperation.
+
+## 3. PROHIBITIONS
+Any use, modification, or distribution not explicitly authorized by the copyright holder is STRICTLY PROHIBITED. This includes but is not limited to:
+- Commercial exploitation or sale to private entities.
+- Reverse engineering, decompilation, or disassembly of core analytical modules.
+- Redistribution to non-authorized third parties or foreign agencies without explicit governmental consent.
+- Removal or alteration of classification markings (CONFIDENTIAL/SECRET/TOP SECRET).
+
+## 4. CONFIDENTIALITY
+The source code, architecture, and integrated ML models are considered STATE SECRET. Any leakage or unauthorized disclosure may be subject to prosecution under national security laws (e.g., Ley 11/2002 in Spain, or equivalent international statutes).
+
+## 5. NO WARRANTY
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. The developers assume no liability for misuse or actions taken based on intelligence gathered by the system.
+
+## 6. TERMINATION
+Failure to comply with these terms results in immediate revocation of access and potential legal action under military jurisdiction.
+
+---
+**CLASSIFICATION: SECRET / NATO RESTRICTED**
+**COPYRIGHT (C) 2024-2026 MURDOK1982 / SISTEMA VIGÍA PROJECT**

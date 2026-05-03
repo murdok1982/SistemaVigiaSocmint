@@ -1,0 +1,452 @@
+# VIGÍA Military System - Kubernetes Deployment
+# Nivel: ESTATAL-MILITAR
+# Requiere: kubectl, cluster K8s, Ingress Controller
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vigia-system
+  labels:
+    security-level: "TOP_SECRET"
+    system: vigia
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# ConfigMap para configuración
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vigia-config
+  namespace: vigia-system
+data:
+  VIGIA_ENV: "production"
+  JWT_SECRET_KEY: "CHANGE_ME_SECURE_64CHAR_KEY"
+  VIGIA_MASTER_KEY: "CHANGE_ME_32CHAR_KEY"
+  VIGIA_HMAC_KEY: "CHANGE_ME_HMAC_KEY"
+  REDIS_URL: "redis://redis-service:6379"
+  VIGIA_ALLOWED_ORIGINS: "https://vigia.gov.int"
+  SIEM_TYPE: "splunk"
+  ENABLE_MAP_VIEW: "true"
+  ENABLE_NETWORK_GRAPHS: "true"
+  ENABLE_REPORT_GENERATOR: "true"
+  ENABLE_MOBILE_SYNC: "true"
+  ENABLE_STIX_EXPORT: "true"
+  ENABLE_SIEM_INTEGRATION: "true"
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# Secret (base64 encoded - usar kubectl create secret en producción)
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vigia-secrets
+  namespace: vigia-system
+type: Opaque
+data:
+  # Valores en base64: echo -n "value" | base64
+  DATABASE_URL: cG9zdGdyZXNxbDovL3ZpZ2lhOnZpZ2lhQHN5c3RlbS1kYi52aWdpYS1zeXN0ZW06NTQzMg==  # Cambiar!
+  REDIS_PASSWORD: CHANGE_ME_BASE64_ENCODED
+  JWT_SECRET_KEY: CHANGE_ME_BASE64_ENCODED
+  VIGIA_MASTER_KEY: CHANGE_ME_BASE64_ENCODED
+  HMAC_SECRET: CHANGE_ME_BASE64_ENCODED
+  TWITTER_BEARER_TOKEN: CHANGE_ME_BASE64_ENCODED
+  REDDIT_CLIENT_ID: CHANGE_ME_BASE64_ENCODED
+  REDDIT_CLIENT_SECRET: CHANGE_ME_BASE64_ENCODED
+  TELEGRAM_BOT_TOKEN: CHANGE_ME_BASE64_ENCODED
+  META_ACCESS_TOKEN: CHANGE_ME_BASE64_ENCODED
+  SIEM_API_TOKEN: CHANGE_ME_BASE64_ENCODED
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# PostgreSQL StatefulSet
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vigia-postgres
+  namespace: vigia-system
+spec:
+  serviceName: "postgres-service"
+  replicas: 1  # Para HA: usar 3+ con Patroni
+  selector:
+    matchLabels:
+      app: vigia-postgres
+  template:
+    metadata:
+      labels:
+        app: vigia-postgres
+    spec:
+      securityContext:
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: "vigia"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigia-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: "vigia_db"
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "vigia"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "vigia"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# Redis Deployment
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vigia-redis
+  namespace: vigia-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vigia-redis
+  template:
+    metadata:
+      labels:
+        app: vigia-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        command: ["redis-server", "--requirepass", "$(REDIS_PASSWORD)", "--appendonly", "yes"]
+        ports:
+        - containerPort: 6379
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigia-secrets
+              key: REDIS_PASSWORD
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      volumes:
+      - name: redis-data
+        emptyDir: {}
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# Backend API Deployment (FastAPI)
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vigia-api
+  namespace: vigia-system
+spec:
+  replicas: 3  # Escalado horizontal
+  selector:
+    matchLabels:
+      app: vigia-api
+  template:
+    metadata:
+      labels:
+        app: vigia-api
+        version: "2.0"
+    spec:
+      serviceAccountName: vigia-api-sa
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: api
+        image: vigia-backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: vigia-config
+        - secretRef:
+            name: vigia-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: models
+          mountPath: /app/models
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: models
+        emptyDir: {}
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# Frontend Deployment (Nginx)
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vigia-frontend
+  namespace: vigia-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vigia-frontend
+  template:
+    metadata:
+      labels:
+        app: vigia-frontend
+    spec:
+      containers:
+      - name: nginx
+        image: vigia-frontend:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# Services
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: vigia-system
+spec:
+  selector:
+    app: vigia-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: vigia-system
+spec:
+  selector:
+    app: vigia-redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+  namespace: vigia-system
+spec:
+  selector:
+    app: vigia-api
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: vigia-system
+spec:
+  selector:
+    app: vigia-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# Ingress (requiere Ingress Controller como NGINX)
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vigia-ingress
+  namespace: vigia-system
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - vigia.gov.int
+    secretName: vigia-tls
+  rules:
+  - host: vigia.gov.int
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 8000
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# ServiceAccount para la API
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vigia-api-sa
+  namespace: vigia-system
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# Horizontal Pod Autoscaler (HPA)
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: vigia-api-hpa
+  namespace: vigia-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: vigia-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# NetworkPolicy (Seguridad de red)
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vigia-network-policy
+  namespace: vigia-system
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: vigia-frontend
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: vigia-postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:
+    - podSelector:
+        matchLabels:
+          app: vigia-redis
+    ports:
+    - protocol: TCP
+      port: 6379

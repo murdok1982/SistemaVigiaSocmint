@@ -1,0 +1,49 @@
+name: vigia_mobile
+description: VIGÍA Mobile - Monitor OSINT/SOCMINT para fuerzas de seguridad
+publish_to: 'none'
+version: 2.0.0+200
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Networking y API
+  http: ^1.2.0
+  dio: ^5.4.0
+  
+  # State management
+  provider: ^6.1.0
+  flutter_bloc: ^8.1.0
+  
+  # Storage y seguridad
+  shared_preferences: ^2.2.0
+  flutter_secure_storage: ^9.0.0
+  local_auth: ^2.1.0
+  
+  # UI y utilidades
+  flutter_svg: ^2.0.0
+  cached_network_image: ^3.3.0
+  intl: ^0.18.0
+  url_launcher: ^6.2.0
+  
+  # Notificaciones
+  firebase_messaging: ^15.1.0
+  flutter_local_notifications: ^17.2.0
+  
+  # Biometrics
+  local_auth: ^2.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/

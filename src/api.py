@@ -1,37 +1,42 @@
 """
-API FastAPI — Sistema VIGÍA OSINT/SOCMINT Monitor
-
-Endpoints para el dashboard de analistas humanos.
-Toda acción de revisión requiere identificación del analista.
+API FastAPI — Sistema VIGÍA OSINT/SOCMINT Monitor — VERSIÓN MILITAR
+Endpoints para el dashboard de analistas con autenticación JWT, RBAC y auditoría completa.
 """
 import logging
 import os
-import secrets
 import time
 import uuid
-from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Path, Query, Request, Security
+from fastapi import FastAPI, Depends, HTTPException, Path, Query, Request, Security, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.security.api_key import APIKeyHeader
+from fastapi.security import HTTPBearer
+from jose import JWTError
 
-from src.models import (
-    AlertLevel,
-    AlertResponse,
-    AlertStatus,
-    AlertsResponse,
-    AuditEntry,
-    AuditLogResponse,
-    OrchestratorResponse,
-    ReviewRequest,
-    ReviewResponse,
-    SystemStats,
-    ThreatIndicator,
+from src.database import (
+    AlertModel, AuditLogModel, AnalystModel, ThreatIntelFeed,
+    SystemMetricsModel, get_db, init_db, close_db,
 )
-from src.orchestrator import VigiaOrchestrator
+from src.auth import (
+    TokenData, AnalystCreate, AnalystLogin, TokenResponse,
+    create_access_token, create_refresh_token, decode_token,
+    hash_password, verify_password, verify_mfa_token,
+    get_current_analyst, require_clearance, require_role,
+    generate_hmac, verify_hmac,
+)
+from src.crypto_utils import encrypt_data, decrypt_data, encrypt_sensitive_field, decrypt_sensitive_field, hash_identifier
+from src.cache import get_redis, close_redis, check_rate_limit, cache_get, cache_set
+from src.models import (
+    AlertLevel, AlertStatus, AlertResponse, AlertsResponse,
+    AuditEntry, AuditLogResponse, SystemStats, ReviewRequest, ReviewResponse,
+    OrchestratorResponse, AnalystReport, ThreatIndicator,
+)
+from sqlalchemy import select, update, delete, func, desc, and_
+from sqlalchemy.ext.asyncio import AsyncSession
+import json
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,85 +45,33 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Configuración de seguridad desde entorno
+# Lifespan (startup/shutdown)
 # ─────────────────────────────────────────────────────────────────────────────
-_VIGIA_API_KEY: Optional[str] = os.environ.get("VIGIA_API_KEY")
-_API_KEY_ENABLED: bool = bool(_VIGIA_API_KEY)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Eventos de inicio y cierre de la aplicación."""
+    logger.info("Sistema VIGÍA iniciando...")
+    await init_db()
+    logger.info("Base de datos inicializada")
+    yield
+    logger.info("Sistema VIGÍA apagando...")
+    await close_db()
+    await close_redis()
+    logger.info("Recursos liberados")
 
-_API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
-
-# Rate limiting en memoria (prototipo — en producción usar Redis)
-# Estructura: { ip: [(timestamp, endpoint), ...] }
-_rate_limit_store: dict[str, list[float]] = defaultdict(list)
-_RATE_LIMIT_WRITE_MAX = 10   # peticiones de escritura por ventana
-_RATE_LIMIT_WRITE_WINDOW = 60  # segundos
-
-
-def _get_client_ip(request: Request) -> str:
-    """Extrae la IP real del cliente, considerando proxies confiables."""
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        # Tomar solo la primera IP (cliente original) — no confiar en toda la cadena
-        return forwarded_for.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
-
-
-def _check_rate_limit(ip: str) -> None:
-    """
-    Verifica que la IP no haya superado el límite de peticiones de escritura.
-    Lanza HTTPException 429 si se supera el límite.
-    """
-    now = time.monotonic()
-    window_start = now - _RATE_LIMIT_WRITE_WINDOW
-    # Limpiar entradas antiguas
-    _rate_limit_store[ip] = [t for t in _rate_limit_store[ip] if t > window_start]
-    if len(_rate_limit_store[ip]) >= _RATE_LIMIT_WRITE_MAX:
-        logger.warning("RATE_LIMIT: IP=%s superó el límite de %d req/%ds", ip, _RATE_LIMIT_WRITE_MAX, _RATE_LIMIT_WRITE_WINDOW)
-        raise HTTPException(
-            status_code=429,
-            detail="Demasiadas peticiones. Intenta de nuevo más tarde.",
-            headers={"Retry-After": str(_RATE_LIMIT_WRITE_WINDOW)},
-        )
-    _rate_limit_store[ip].append(now)
-
-
-def _verify_api_key(api_key: Optional[str] = Security(_API_KEY_HEADER)) -> None:
-    """
-    Verifica el API key en el header X-API-Key para endpoints de escritura.
-    Si VIGIA_API_KEY no está configurada, la verificación se omite (modo desarrollo).
-    Usa comparación en tiempo constante para evitar timing attacks.
-    """
-    if not _API_KEY_ENABLED:
-        logger.warning("SECURITY: VIGIA_API_KEY no configurada — endpoints de escritura sin protección")
-        return
-    if api_key is None or not secrets.compare_digest(api_key, _VIGIA_API_KEY):
-        raise HTTPException(status_code=401, detail="API key inválida o ausente")
-
-
-def _sanitize_for_log(text: str, max_length: int = 200) -> str:
-    """
-    Sanitiza un string para incluirlo en logs.
-    Elimina newlines y caracteres de control para prevenir log injection.
-    Trunca a max_length caracteres.
-    """
-    sanitized = text.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
-    # Eliminar otros caracteres de control (U+0000–U+001F excepto los ya tratados)
-    sanitized = "".join(c if ord(c) >= 0x20 else f"\\x{ord(c):02x}" for c in sanitized)
-    if len(sanitized) > max_length:
-        sanitized = sanitized[:max_length] + "[TRUNCADO]"
-    return sanitized
-
-
+# ─────────────────────────────────────────────────────────────────────────────
+# App FastAPI
+# ─────────────────────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="VIGÍA — Sistema OSINT/SOCMINT Monitor",
-    description="API para análisis pasivo de amenazas en contenido público de redes sociales.",
-    version="0.1.0",
-    # Deshabilitar docs en producción configurando VIGIA_ENV=production
+    title="VIGÍA — Sistema OSINT/SOCMINT Monitor (MILITAR)",
+    description="API para análisis pasivo de amenazas en contenido público de redes sociales. Nivel: ESTATAL-MILITAR",
+    version="2.0.0",
+    lifespan=lifespan,
     docs_url=None if os.environ.get("VIGIA_ENV") == "production" else "/docs",
     redoc_url=None,
 )
 
-# CORS: origenes explícitos desde variable de entorno, con fallback para desarrollo
+# CORS: origenes explícitos desde variable de entorno
 _raw_origins = os.environ.get("VIGIA_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
 _allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
@@ -126,175 +79,195 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "X-API-Key"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 
+# Security
+security = HTTPBearer(auto_error=False)
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Middleware de seguridad
+# ─────────────────────────────────────────────────────────────────────────────
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
     """Inyecta headers de seguridad HTTP en todas las respuestas."""
+    # Rate limiting por IP
+    client_ip = request.client.host if request.client else "unknown"
+    allowed, rate_info = await check_rate_limit(client_ip, max_requests=100, window_seconds=60)
+
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'none'; frame-ancestors 'none'"
-    )
-    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), clipboard=()"
+
+    if not allowed:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Demasiadas peticiones"},
+            headers={"Retry-After": str(rate_info["reset"])},
+        )
+
+    # Añadir headers de rate limit
+    response.headers["X-RateLimit-Limit"] = str(rate_info["limit"])
+    response.headers["X-RateLimit-Remaining"] = str(rate_info["remaining"])
     return response
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """
-    Handler global: captura excepciones no controladas y devuelve un mensaje
-    genérico sin exponer stack traces ni detalles internos del sistema.
-    """
-    # HTTPException tiene su propio handler en FastAPI — aquí solo caen las inesperadas
+    """Handler global de excepciones."""
     if isinstance(exc, HTTPException):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
     logger.error("ERROR no controlado en %s %s: %s", request.method, request.url.path, exc, exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Error interno del servidor. Contacta al administrador del sistema."},
+        content={"detail": "Error interno del sistema. Contacta al administrador."},
     )
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Almacenamiento en memoria (prototipo — en producción: PostgreSQL + SQLAlchemy)
-# ─────────────────────────────────────────────────────────────────────────────
-_alerts_db: dict[str, dict] = {}
-_audit_db: list[dict] = []
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Endpoints de Autenticación
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post("/api/auth/login", response_model=TokenResponse)
+async def login(credentials: AnalystLogin, request: Request, db: AsyncSession = Depends(get_db)):
+    """Autenticación de analista con JWT + MFA opcional."""
+    # Buscar analista por username
+    result = await db.execute(
+        select(AnalystModel).where(AnalystModel.username == credentials.username)
+    )
+    analyst = result.scalar_one_or_none()
 
-def _add_audit_entry(agent: str, action_type: str, details: str, alert_id: Optional[str] = None) -> None:
-    """Registra una entrada en el log de auditoría con sanitización anti-log-injection."""
-    safe_details = _sanitize_for_log(details)
-    safe_agent = _sanitize_for_log(agent, max_length=64)
-    safe_action = _sanitize_for_log(action_type, max_length=64)
-    entry = {
-        "id": str(uuid.uuid4()),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "agent": safe_agent,
-        "action_type": safe_action,
-        "target_id": alert_id,
-        "details": safe_details,
-        "alert_id": alert_id,
+    if not analyst or not verify_password(credentials.password, analyst.password_hash):
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+    # Verificar si la cuenta está bloqueada
+    if analyst.locked_until and analyst.locked_until > datetime.now(timezone.utc):
+        raise HTTPException(status_code=403, detail="Cuenta bloqueada. Intenta más tarde.")
+
+    # Verificar MFA si está habilitado
+    if analyst.mfa_enabled:
+        if not credentials.mfa_token or not verify_mfa_token(analyst.mfa_secret or "", credentials.mfa_token):
+            raise HTTPException(status_code=401, detail="Token MFA requerido o inválido")
+
+    # Generar tokens
+    token_data = {
+        "sub": analyst.username,
+        "role": analyst.role,
+        "clearance": analyst.clearance_level,
+        "analyst_id": analyst.id,
     }
-    _audit_db.append(entry)
-    logger.info("[AUDIT] %s | %s | %s", safe_agent, safe_action, safe_details)
+    access_token = create_access_token(token_data)
+    refresh_token = create_refresh_token(token_data)
+
+    # Actualizar último login
+    analyst.last_login = datetime.now(timezone.utc)
+    analyst.failed_login_attempts = 0
+    await db.commit()
+
+    # Log de auditoría
+    await _add_audit_entry(
+        db=db,
+        analyst_id=analyst.id,
+        agent="AUTH",
+        action_type="login_success",
+        details=f"username={analyst.username} ip={request.client.host if request.client else 'unknown'}",
+    )
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=15 * 60,  # 15 minutos
+    )
 
 
-def _seed_sample_alerts() -> None:
-    """Carga alertas de muestra para demostración del prototipo."""
-    if _alerts_db:
-        return
-
-    samples = [
-        {
-            "id": str(uuid.uuid4()),
-            "platform": "Telegram",
-            "content_excerpt": "Coordinar el ataque el próximo viernes. Punto de encuentro...",
-            "content_full": "Coordinar el ataque el próximo viernes. Punto de encuentro: ya sabéis dónde. Traed el material acordado. La señal es la habitual.",
-            "indicators": [
-                {"type": "coordinacion_ataque", "value": "coordinar el ataque", "explanation": "Posible coordinación de acción violenta: 'coordinar el ataque'", "confidence": 0.85},
-                {"type": "coordinacion_ataque", "value": "punto de encuentro", "explanation": "Posible coordinación de acción violenta: 'punto de encuentro'", "confidence": 0.75},
-            ],
-            "risk_score": 0.78,
-            "risk_level": AlertLevel.ROJO,
-            "status": AlertStatus.PENDIENTE,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "reviewed_at": None,
-            "reviewed_by": None,
-            "analyst_notes": None,
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "platform": "Twitter",
-            "content_excerpt": "Hay que destruir el sistema, no podemos seguir así. El cambio viene...",
-            "content_full": "Hay que destruir el sistema, no podemos seguir así. El cambio viene por la fuerza, no hay otra opción.",
-            "indicators": [
-                {"type": "llamada_violencia", "value": "destruir el sistema", "explanation": "Llamada explícita a la violencia: 'destruir el sistema'", "confidence": 0.65},
-            ],
-            "risk_score": 0.52,
-            "risk_level": AlertLevel.NARANJA,
-            "status": AlertStatus.PENDIENTE,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "reviewed_at": None,
-            "reviewed_by": None,
-            "analyst_notes": None,
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "platform": "Facebook",
-            "content_excerpt": "Voy a mataros a todos si no cambian las cosas. Estoy al límite...",
-            "content_full": "Voy a mataros a todos si no cambian las cosas. Estoy al límite y no tengo nada que perder.",
-            "indicators": [
-                {"type": "amenaza_directa", "value": "voy a mataros", "explanation": "Amenaza directa e identificable: 'voy a mataros'", "confidence": 0.90},
-            ],
-            "risk_score": 0.82,
-            "risk_level": AlertLevel.ROJO,
-            "status": AlertStatus.PENDIENTE,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "reviewed_at": None,
-            "reviewed_by": None,
-            "analyst_notes": None,
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "platform": "Reddit",
-            "content_excerpt": "A veces pienso que la única solución es la radical...",
-            "content_full": "Estoy harto de todo esto. A veces pienso que la única solución es la radical.",
-            "indicators": [],
-            "risk_score": 0.18,
-            "risk_level": AlertLevel.VERDE,
-            "status": AlertStatus.ARCHIVADA,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "reviewed_at": None,
-            "reviewed_by": None,
-            "analyst_notes": None,
-        },
-    ]
-
-    for alert in samples:
-        _alerts_db[alert["id"]] = alert
-        _add_audit_entry(
-            "SYSTEM",
-            "alert_created",
-            f"platform={alert['platform']} level={alert['risk_level']} score={alert['risk_score']}",
-            alert["id"],
+@app.post("/api/auth/refresh", response_model=TokenResponse)
+async def refresh_token(refresh_token: str):
+    """Refresca el access token usando el refresh token."""
+    try:
+        payload = decode_token(refresh_token)
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Token inválido")
+        # Generar nuevo access token
+        new_access = create_access_token({
+            "sub": payload.sub,
+            "role": payload.role,
+            "clearance": payload.clearance,
+            "analyst_id": payload.analyst_id,
+        })
+        return TokenResponse(
+            access_token=new_access,
+            refresh_token=refresh_token,
+            expires_in=15 * 60,
         )
-
-
-# Inicializar datos de muestra al arrancar
-_seed_sample_alerts()
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Refresh token inválido")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ENDPOINTS
+# Endpoints de Analistas (Solo Admin)
 # ─────────────────────────────────────────────────────────────────────────────
+@app.post("/api/analysts", status_code=status.HTTP_201_CREATED)
+async def create_analyst(
+    data: AnalystCreate,
+    db: AsyncSession = Depends(get_db),
+    current: TokenData = Depends(get_current_analyst),
+):
+    """Crea un nuevo analista (solo admin)."""
+    # Verificar que el usuario actual es admin
+    if current.role != "admin":
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear analistas")
 
+    # Verificar si el username ya existe
+    result = await db.execute(
+        select(AnalystModel).where(AnalystModel.username == data.username)
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="El username ya existe")
+
+    new_analyst = AnalystModel(
+        username=data.username,
+        email=data.email,
+        full_name=data.full_name,
+        password_hash=hash_password(data.password),
+        role=data.role,
+        clearance_level=data.clearance_level,
+    )
+    db.add(new_analyst)
+    await db.commit()
+
+    return {"message": "Analista creado", "analyst_id": new_analyst.id}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Endpoints de Alertas (Requieren autenticación)
+# ─────────────────────────────────────────────────────────────────────────────
 @app.get("/api/health", response_model=SystemStats)
-async def health() -> SystemStats:
+async def health(db: AsyncSession = Depends(get_db)):
     """Estado del sistema y estadísticas generales."""
-    by_level = {level.value: 0 for level in AlertLevel}
-    pending = 0
+    # Obtener estadísticas de la base de datos
+    result = await db.execute(
+        select(
+            func.count(AlertModel.id).label("total"),
+            func.sum(func.case((AlertModel.status == AlertStatus.PENDIENTE, 1), else_=0)).label("pending"),
+        )
+    )
+    stats = result.one()
 
-    for alert in _alerts_db.values():
-        level = alert["risk_level"]
-        if isinstance(level, AlertLevel):
-            by_level[level.value] += 1
-        else:
-            by_level[str(level)] = by_level.get(str(level), 0) + 1
-
-        if alert["status"] == AlertStatus.PENDIENTE:
-            pending += 1
+    by_level_result = await db.execute(
+        select(AlertModel.risk_level, func.count(AlertModel.id))
+        .group_by(AlertModel.risk_level)
+    )
+    by_level = {level: count for level, count in by_level_result.all()}
 
     return SystemStats(
-        alerts_today=len(_alerts_db),
-        pending_review=pending,
+        alerts_today=stats.total or 0,
+        pending_review=stats.pending or 0,
         by_level=by_level,
         system_status="online",
     )
@@ -302,71 +275,87 @@ async def health() -> SystemStats:
 
 @app.get("/api/alerts", response_model=AlertsResponse)
 async def list_alerts(
-    risk_level: Optional[AlertLevel] = Query(None),
+    risk_level: Optional[str] = Query(None),
     platform: Optional[str] = Query(None),
-    status: Optional[AlertStatus] = Query(None),
+    status: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-) -> AlertsResponse:
+    db: AsyncSession = Depends(get_db),
+    current: TokenData = Depends(get_current_analyst),
+):
     """Lista de alertas con filtros opcionales."""
-    alerts = list(_alerts_db.values())
+    query = select(AlertModel)
 
     # Aplicar filtros
-    if risk_level is not None:
-        alerts = [a for a in alerts if a["risk_level"] == risk_level]
-    if platform is not None:
-        alerts = [a for a in alerts if a["platform"].lower() == platform.lower()]
-    if status is not None:
-        alerts = [a for a in alerts if a["status"] == status]
+    if risk_level:
+        query = query.where(AlertModel.risk_level == risk_level)
+    if platform:
+        query = query.where(AlertModel.platform.ilike(platform))
+    if status:
+        query = query.where(AlertModel.status == status)
 
     # Ordenar por risk_score descendente
-    alerts.sort(key=lambda a: a["risk_score"], reverse=True)
+    query = query.order_by(desc(AlertModel.risk_score))
+
+    # Contar total
+    count_query = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_query)).scalar()
 
     # Paginación
-    total = len(alerts)
-    start = (page - 1) * page_size
-    end = start + page_size
-    page_alerts = alerts[start:end]
+    offset = (page - 1) * page_size
+    query = query.offset(offset).limit(page_size)
+
+    results = (await db.execute(query)).scalars().all()
 
     items = []
-    for a in page_alerts:
-        indicators = [ThreatIndicator(**ind) if isinstance(ind, dict) else ind for ind in a["indicators"]]
+    for alert in results:
+        indicators = json.loads(alert.indicators) if alert.indicators else []
         items.append({
-            "id": a["id"],
-            "platform": a["platform"],
-            "content_excerpt": a["content_excerpt"],
+            "id": alert.id,
+            "platform": alert.platform,
+            "content_excerpt": alert.content_excerpt,
             "indicators": indicators,
-            "risk_score": a["risk_score"],
-            "risk_level": a["risk_level"],
-            "status": a["status"],
-            "created_at": a["created_at"],
+            "risk_score": alert.risk_score,
+            "risk_level": alert.risk_level,
+            "status": alert.status,
+            "created_at": alert.created_at.isoformat() if alert.created_at else None,
         })
 
     return AlertsResponse(items=items, total=total, page=page, page_size=page_size)
 
 
 @app.get("/api/alerts/{alert_id}", response_model=AlertResponse)
-async def get_alert(alert_id: str = Path(..., max_length=128)) -> AlertResponse:
-    """Detalle completo de una alerta."""
-    alert = _alerts_db.get(alert_id)
+async def get_alert(
+    alert_id: str = Path(..., max_length=128),
+    db: AsyncSession = Depends(get_db),
+    current: TokenData = Depends(get_current_analyst),
+):
+    """Detalle completo de una alerta (descifra contenido)."""
+    result = await db.execute(select(AlertModel).where(AlertModel.id == alert_id))
+    alert = result.scalar_one_or_none()
+
     if not alert:
         raise HTTPException(status_code=404, detail="Alerta no encontrada")
 
-    indicators = [ThreatIndicator(**ind) if isinstance(ind, dict) else ind for ind in alert["indicators"]]
+    # Descifrar contenido sensible
+    content_full = decrypt_sensitive_field(alert.content_full_encrypted) or alert.content_excerpt
+    analyst_notes = decrypt_sensitive_field(alert.analyst_notes) if alert.analyst_notes else None
+
+    indicators = json.loads(alert.indicators) if alert.indicators else []
 
     return AlertResponse(
-        id=alert["id"],
-        platform=alert["platform"],
-        content_excerpt=alert["content_excerpt"],
-        content_full=alert["content_full"],
+        id=alert.id,
+        platform=alert.platform,
+        content_excerpt=alert.content_excerpt,
+        content_full=content_full,
         indicators=indicators,
-        risk_score=alert["risk_score"],
-        risk_level=alert["risk_level"],
-        status=alert["status"],
-        created_at=alert["created_at"],
-        reviewed_at=alert.get("reviewed_at"),
-        reviewed_by=alert.get("reviewed_by"),
-        analyst_notes=alert.get("analyst_notes"),
+        risk_score=alert.risk_score,
+        risk_level=alert.risk_level,
+        status=alert.status,
+        created_at=alert.created_at.isoformat() if alert.created_at else None,
+        reviewed_at=alert.reviewed_at.isoformat() if alert.reviewed_at else None,
+        reviewed_by=alert.reviewed_by,
+        analyst_notes=analyst_notes,
     )
 
 
@@ -375,28 +364,18 @@ async def review_alert(
     request: Request,
     body: ReviewRequest,
     alert_id: str = Path(..., max_length=128),
-    _api_key: None = Security(_verify_api_key),
-) -> ReviewResponse:
-    """
-    Registra la decisión del analista sobre una alerta.
-    Requiere X-API-Key válida, identificación del analista y notas de justificación.
-    """
-    _check_rate_limit(_get_client_ip(request))
+    db: AsyncSession = Depends(get_db),
+    current: TokenData = Depends(get_current_analyst),
+):
+    """Registra la decisión del analista sobre una alerta."""
+    result = await db.execute(select(AlertModel).where(AlertModel.id == alert_id))
+    alert = result.scalar_one_or_none()
 
-    # Rechazar alert_id con caracteres fuera del rango UUID para evitar path traversal
-    if not alert_id.replace("-", "").isalnum():
-        raise HTTPException(status_code=400, detail="ID de alerta inválido")
-
-    alert = _alerts_db.get(alert_id)
     if not alert:
-        # Respuesta genérica para no filtrar existencia de IDs
         raise HTTPException(status_code=404, detail="Alerta no encontrada")
 
-    if alert["status"] != AlertStatus.PENDIENTE:
-        raise HTTPException(
-            status_code=409,
-            detail="La alerta ya fue revisada",
-        )
+    if alert.status != AlertStatus.PENDIENTE:
+        raise HTTPException(status_code=409, detail="La alerta ya fue revisada")
 
     # Mapear acción a status
     status_map = {
@@ -406,25 +385,25 @@ async def review_alert(
     }
     new_status = status_map.get(body.action, AlertStatus.ARCHIVADA)
 
-    now = datetime.now(timezone.utc).isoformat()
-    _alerts_db[alert_id]["status"] = new_status
-    _alerts_db[alert_id]["reviewed_at"] = now
-    _alerts_db[alert_id]["reviewed_by"] = body.analyst_id
-    _alerts_db[alert_id]["analyst_notes"] = body.notes
+    # Cifrar notas del analista
+    notes_encrypted = encrypt_sensitive_field(body.notes) if body.notes else None
 
-    _add_audit_entry(
-        "ANALYST",
-        f"review_{body.action.lower()}",
-        # Solo loguear longitud de las notas, no su contenido (puede contener datos sensibles)
-        f"analista={body.analyst_id} accion={body.action} notas_len={len(body.notes)}",
-        alert_id,
-    )
+    alert.status = new_status
+    alert.reviewed_at = datetime.now(timezone.utc)
+    alert.reviewed_by = current.analyst_id
+    alert.analyst_notes = notes_encrypted
 
-    logger.info(
-        "REVIEW: alerta %s → %s por analista %s",
-        alert_id,
-        new_status,
-        body.analyst_id,
+    await db.commit()
+
+    # Log de auditoría
+    await _add_audit_entry(
+        db=db,
+        analyst_id=current.analyst_id,
+        agent="ANALYST",
+        action_type=f"review_{body.action.lower()}",
+        details=f"analista={current.username} accion={body.action} alert_id={alert_id}",
+        alert_id=alert_id,
+        ip_address=request.client.host if request.client else None,
     )
 
     return ReviewResponse(
@@ -433,81 +412,9 @@ async def review_alert(
     )
 
 
-@app.post("/api/analyze", response_model=OrchestratorResponse)
-async def run_analysis(
-    request: Request,
-    objective: str = Query(..., min_length=5, max_length=500, description="Objetivo del análisis"),
-    platforms: Optional[str] = Query(None, max_length=200, description="Plataformas separadas por coma"),
-    max_results: int = Query(20, ge=1, le=100),
-    _api_key: None = Security(_verify_api_key),
-) -> OrchestratorResponse:
-    """
-    Lanza un ciclo completo de análisis OSINT/SOCMINT.
-    Requiere X-API-Key válida. Las alertas generadas quedan en la cola de revisión humana.
-    """
-    _check_rate_limit(_get_client_ip(request))
-
-    # Validar y normalizar la lista de plataformas
-    _ALLOWED_PLATFORMS = {"twitter", "telegram", "facebook", "reddit", "web"}
-    platform_list: Optional[list[str]] = None
-    if platforms:
-        raw_platforms = [p.strip().lower() for p in platforms.split(",") if p.strip()]
-        platform_list = [p for p in raw_platforms if p in _ALLOWED_PLATFORMS]
-        if not platform_list:
-            raise HTTPException(status_code=400, detail="Ninguna plataforma válida especificada")
-
-    orchestrator = VigiaOrchestrator()
-    result = await orchestrator.run_analysis_pipeline(
-        objective=objective,
-        platforms=platform_list,
-        max_results=max_results,
-    )
-
-    # Persistir alertas usando los datos ya calculados por el orquestador
-    now = datetime.now(timezone.utc).isoformat()
-    alerts_created = 0
-    for entry in orchestrator._results:
-        alert_data = entry.get("_alert_data")
-        if not alert_data or entry.get("action") == "skip":
-            continue
-
-        alert_id = alert_data["id"]
-        alert_status = (
-            AlertStatus.ARCHIVADA if alert_data["action"] == "archive" else AlertStatus.PENDIENTE
-        )
-
-        _alerts_db[alert_id] = {
-            "id": alert_id,
-            "platform": alert_data["platform"],
-            "content_excerpt": alert_data["content_excerpt"],
-            "content_full": alert_data["content_full"],
-            "indicators": alert_data["indicators"],
-            "risk_score": alert_data["risk_score"],
-            "risk_level": alert_data["risk_level"],
-            "status": alert_status,
-            "created_at": now,
-            "reviewed_at": None,
-            "reviewed_by": None,
-            "analyst_notes": None,
-        }
-        _add_audit_entry(
-            "ORCHESTRATOR",
-            "alert_created",
-            f"platform={alert_data['platform']} level={alert_data['risk_level']} score={alert_data['risk_score']:.4f}",
-            alert_id,
-        )
-        alerts_created += 1
-
-    # Sanitizar el objetivo antes de loguearlo (viene de input externo)
-    _add_audit_entry(
-        "ORCHESTRATOR",
-        "analysis_run",
-        f"objetivo='{_sanitize_for_log(objective)}' plataformas={platform_list} max={max_results} alertas_creadas={alerts_created}",
-    )
-
-    return result
-
-
+# ─────────────────────────────────────────────────────────────────────────────
+# Endpoints de Auditoría
+# ─────────────────────────────────────────────────────────────────────────────
 @app.get("/api/audit-log", response_model=AuditLogResponse)
 async def get_audit_log(
     date_from: Optional[str] = Query(None),
@@ -516,20 +423,121 @@ async def get_audit_log(
     action_type: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-) -> AuditLogResponse:
-    """Log de auditoría completo con filtros."""
-    entries = list(_audit_db)
+    db: AsyncSession = Depends(get_db),
+    current: TokenData = Depends(get_current_analyst),
+):
+    """Log de auditoría con filtros (solo supervisores+)."""
+    # Verificar nivel de acceso
+    if current.role not in ["supervisor", "admin"]:
+        raise HTTPException(status_code=403, detail="Requiere nivel de supervisor")
+
+    query = select(AuditLogModel)
 
     if agent:
-        entries = [e for e in entries if agent.lower() in e["agent"].lower()]
+        query = query.where(AuditLogModel.agent.ilike(f"%{agent}%"))
     if action_type:
-        entries = [e for e in entries if action_type.lower() in e["action_type"].lower()]
+        query = query.where(AuditLogModel.action_type.ilike(f"%{action_type}%"))
+    if date_from:
+        query = query.where(AuditLogModel.timestamp >= date_from)
+    if date_to:
+        query = query.where(AuditLogModel.timestamp <= date_to)
 
-    # Ordenar por timestamp descendente
-    entries.sort(key=lambda e: e["timestamp"], reverse=True)
+    query = query.order_by(desc(AuditLogModel.timestamp))
 
-    total = len(entries)
-    start = (page - 1) * page_size
-    items = [AuditEntry(**e) for e in entries[start : start + page_size]]
+    # Contar total
+    count_query = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_query)).scalar()
+
+    # Paginación
+    offset = (page - 1) * page_size
+    query = query.offset(offset).limit(page_size)
+
+    results = (await db.execute(query)).scalars().all()
+
+    items = [
+        AuditEntry(
+            id=entry.id,
+            timestamp=entry.timestamp.isoformat() if entry.timestamp else None,
+            agent=entry.agent,
+            action_type=entry.action_type,
+            target_id=entry.target_id,
+            details=entry.details,
+            alert_id=entry.alert_id,
+        )
+        for entry in results
+    ]
 
     return AuditLogResponse(items=items, total=total, page=page, page_size=page_size)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Endpoints de Análisis (Orquestador)
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post("/api/analyze", response_model=OrchestratorResponse)
+async def run_analysis(
+    objective: str = Query(..., min_length=5, max_length=500),
+    platforms: Optional[str] = Query(None),
+    max_results: int = Query(20, ge=1, le=1000),
+    db: AsyncSession = Depends(get_db),
+    current: TokenData = Depends(get_current_analyst),
+):
+    """Lanza un ciclo completo de análisis OSINT/SOCMINT."""
+    from src.orchestrator import VigiaOrchestrator
+
+    # Verificar nivel de habilitación
+    if current.clearance not in ["SECRET", "TOP_SECRET"]:
+        raise HTTPException(status_code=403, detail="Requiere nivel de habilitación SECRET+")
+
+    platform_list = None
+    if platforms:
+        platform_list = [p.strip().lower() for p in platforms.split(",") if p.strip()]
+
+    orchestrator = VigiaOrchestrator()
+    result = await orchestrator.run_analysis_pipeline(
+        objective=objective,
+        platforms=platform_list,
+        max_results=max_results,
+        db=db,
+        analyst_id=current.analyst_id,
+    )
+
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Función auxiliar para auditoría
+# ─────────────────────────────────────────────────────────────────────────────
+async def _add_audit_entry(
+    db: AsyncSession,
+    agent: str,
+    action_type: str,
+    details: str,
+    analyst_id: str | None = None,
+    alert_id: str | None = None,
+    target_id: str | None = None,
+    ip_address: str | None = None,
+):
+    """Añade una entrada al log de auditoría con HMAC."""
+    entry_id = str(uuid.uuid4())
+    timestamp = datetime.now(timezone.utc)
+
+    # Generar HMAC para integridad
+    hmac_data = f"{entry_id}{timestamp}{agent}{action_type}{details}"
+    hmac_signature = generate_hmac(hmac_data)
+
+    entry = AuditLogModel(
+        id=entry_id,
+        timestamp=timestamp,
+        session_id=None,  # Asociar con sesión si está disponible
+        agent=agent,
+        action_type=action_type,
+        target_id=target_id,
+        alert_id=alert_id,
+        details=details,
+        ip_address=ip_address,
+        analyst_id=analyst_id,
+        hmac_signature=hmac_signature,
+    )
+    db.add(entry)
+    await db.commit()
+    logger.info("[AUDIT] %s | %s | %s", agent, action_type, details)

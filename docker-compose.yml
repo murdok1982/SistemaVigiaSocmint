@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  db:
+    image: postgres:16-alpine
+    container_name: vigia_db
+    environment:
+      POSTGRES_USER: vigia
+      POSTGRES_PASSWORD: vigia_secure_password_change_me
+      POSTGRES_DB: vigia_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vigia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis para caché y colas
+  redis:
+    image: redis:7-alpine
+    container_name: vigia_redis
+    command: redis-server --appendonly yes --requirepass redis_secure_password_change_me
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend FastAPI
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: vigia_api
+    environment:
+      DATABASE_URL: postgresql+asyncpg://vigia:vigia_secure_password_change_me@db:5432/vigia_db
+      REDIS_URL: redis://:redis_secure_password_change_me@redis:6379
+      JWT_SECRET_KEY: change_me_with_secure_64char_key
+      VIGIA_MASTER_KEY: change_me_with_secure_32char_key
+      HMAC_SECRET: change_me_with_another_secure_key
+      VIGIA_ENV: production
+      TWITTER_BEARER_TOKEN: ${TWITTER_BEARER_TOKEN:-}
+      REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
+      REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+      - ./models:/app/models
+
+  # Frontend React (build estático servido por nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vigia_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # (Opcional) Worker para procesamiento asíncrono
+  # worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.worker
+  #   container_name: vigia_worker
+  #   environment:
+  #     DATABASE_URL: postgresql+asyncpg://vigia:vigia_secure_password_change_me@db:5432/vigia_db
+  #     REDIS_URL: redis://:redis_secure_password_change_me@redis:6379
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
