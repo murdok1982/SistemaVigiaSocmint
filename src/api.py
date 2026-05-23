@@ -5,6 +5,7 @@ Endpoints para el dashboard de analistas con autenticaci√≥n JWT, RBAC y auditor√
 import logging
 import os
 import time
+import hispan_shield_guardian
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
