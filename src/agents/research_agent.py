@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 def _hash_author_id(raw_id: str) -> str:
-    """Hashea el author_id para anonimización antes de almacenar."""
-    return hashlib.sha256(raw_id.encode()).hexdigest()[:16]
+    """Hashea el author_id (SHA-256 hex completo, 64 chars) para anonimización."""
+    return hashlib.sha256(raw_id.encode()).hexdigest()
 
 
 def _make_sample_posts() -> list[SocialPost]:

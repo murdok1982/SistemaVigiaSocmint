@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" style="background:#0f172a">
+  <defs>
+    <linearGradient id="boxGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="boxGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="boxGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="boxGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="boxGrad5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444"/>
+      <stop offset="100%" style="stop-color:#dc2626"/>
+    </linearGradient>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#475569"/>
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="600" y="40" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#e2e8f0" text-anchor="middle">Arquitectura del Sistema VIGÍA v2.1</text>
+  <text x="600" y="60" font-family="Arial, sans-serif" font-size="12" fill="#64748b" text-anchor="middle">Pipeline completo de análisis OSINT/SOCMINT</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- LAYER 1: Data Sources -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="20" y="80" width="200" height="580" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1" opacity="0.5"/>
+  <text x="120" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="middle">📡 FUENTES DE DATOS</text>
+  
+  <!-- Twitter -->
+  <rect x="40" y="125" width="160" height="50" rx="8" fill="url(#boxGrad1)"/>
+  <text x="120" y="148" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">🐦 Twitter/X API v2</text>
+  <text x="120" y="165" font-family="Arial, sans-serif" font-size="10" fill="#93c5fd" text-anchor="middle">Bearer Token OAuth2</text>
+  
+  <!-- Reddit -->
+  <rect x="40" y="190" width="160" height="50" rx="8" fill="url(#boxGrad1)"/>
+  <text x="120" y="213" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">🔴 Reddit API</text>
+  <text x="120" y="230" font-family="Arial, sans-serif" font-size="10" fill="#93c5fd" text-anchor="middle">Client Credentials</text>
+  
+  <!-- Telegram -->
+  <rect x="40" y="255" width="160" height="50" rx="8" fill="url(#boxGrad1)"/>
+  <text x="120" y="278" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">✈️ Telegram Bot API</text>
+  <text x="120" y="295" font-family="Arial, sans-serif" font-size="10" fill="#93c5fd" text-anchor="middle">Bot Token</text>
+  
+  <!-- Facebook -->
+  <rect x="40" y="320" width="160" height="50" rx="8" fill="url(#boxGrad1)"/>
+  <text x="120" y="343" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">📘 Facebook Graph</text>
+  <text x="120" y="360" font-family="Arial, sans-serif" font-size="10" fill="#93c5fd" text-anchor="middle">Access Token</text>
+  
+  <!-- TikTok -->
+  <rect x="40" y="385" width="160" height="50" rx="8" fill="#334155" stroke="#475569" stroke-width="1" stroke-dasharray="4"/>
+  <text x="120" y="408" font-family="Arial, sans-serif" font-size="13" fill="#94a3b8" text-anchor="middle">🎵 TikTok</text>
+  <text x="120" y="425" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Próximamente</text>
+  
+  <!-- YouTube -->
+  <rect x="40" y="450" width="160" height="50" rx="8" fill="#334155" stroke="#475569" stroke-width="1" stroke-dasharray="4"/>
+  <text x="120" y="473" font-family="Arial, sans-serif" font-size="13" fill="#94a3b8" text-anchor="middle">▶️ YouTube</text>
+  <text x="120" y="490" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Próximamente</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- LAYER 2: Collection + Orchestrator -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="250" y="80" width="200" height="580" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1" opacity="0.5"/>
+  <text x="350" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="middle">⚙️ RECOLECCIÓN</text>
+  
+  <!-- Data Collector -->
+  <rect x="270" y="130" width="160" height="70" rx="8" fill="url(#boxGrad2)"/>
+  <text x="350" y="158" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Real Data Collector</text>
+  <text x="350" y="178" font-family="Arial, sans-serif" font-size="10" fill="#a7f3d0" text-anchor="middle">Recolección paralela async</text>
+  
+  <!-- Strategy Agent -->
+  <rect x="270" y="220" width="160" height="55" rx="8" fill="url(#boxGrad3)"/>
+  <text x="350" y="245" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Strategy Agent</text>
+  <text x="350" y="262" font-family="Arial, sans-serif" font-size="10" fill="#fde68a" text-anchor="middle">Plan de monitoreo</text>
+  
+  <!-- Orchestrator -->
+  <rect x="270" y="300" width="160" height="80" rx="8" fill="url(#boxGrad3)"/>
+  <text x="350" y="328" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">🧠 Orchestrator</text>
+  <text x="350" y="350" font-family="Arial, sans-serif" font-size="10" fill="#fde68a" text-anchor="middle">Pipeline de análisis</text>
+  <text x="350" y="365" font-family="Arial, sans-serif" font-size="10" fill="#fde68a" text-anchor="middle">Coordina todos los agentes</text>
+  
+  <!-- ARQ Worker -->
+  <rect x="270" y="410" width="160" height="55" rx="8" fill="url(#boxGrad2)"/>
+  <text x="350" y="435" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">⚡ ARQ Worker</text>
+  <text x="350" y="452" font-family="Arial, sans-serif" font-size="10" fill="#a7f3d0" text-anchor="middle">Análisis asíncrono</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- LAYER 3: ML Analysis -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="480" y="80" width="220" height="580" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1" opacity="0.5"/>
+  <text x="590" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="middle">🧠 ANÁLISIS ML</text>
+  
+  <!-- Transformer -->
+  <rect x="500" y="130" width="180" height="65" rx="8" fill="url(#boxGrad4)"/>
+  <text x="590" y="155" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Transformer ML</text>
+  <text x="590" y="172" font-family="Arial, sans-serif" font-size="9" fill="#c4b5fd" text-anchor="middle">sentence-transformers</text>
+  <text x="590" y="185" font-family="Arial, sans-serif" font-size="9" fill="#c4b5fd" text-anchor="middle">ES, EN, AR, RU, ZH</text>
+  
+  <!-- Keyword Analyzer -->
+  <rect x="500" y="210" width="180" height="55" rx="8" fill="url(#boxGrad4)"/>
+  <text x="590" y="235" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Keyword Analyzer</text>
+  <text x="590" y="252" font-family="Arial, sans-serif" font-size="10" fill="#c4b5fd" text-anchor="middle">TF-IDF + Random Forest</text>
+  
+  <!-- NER -->
+  <rect x="500" y="280" width="180" height="55" rx="8" fill="url(#boxGrad4)"/>
+  <text x="590" y="305" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">NER spaCy</text>
+  <text x="590" y="322" font-family="Arial, sans-serif" font-size="10" fill="#c4b5fd" text-anchor="middle">PER, LOC, ORG, WEAPONS</text>
+  
+  <!-- Compliance Agent -->
+  <rect x="500" y="360" width="180" height="55" rx="8" fill="url(#boxGrad3)"/>
+  <text x="590" y="385" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Compliance Agent</text>
+  <text x="590" y="402" font-family="Arial, sans-serif" font-size="10" fill="#fde68a" text-anchor="middle">Validación de policy</text>
+  
+  <!-- Execution Agent -->
+  <rect x="500" y="430" width="180" height="55" rx="8" fill="url(#boxGrad3)"/>
+  <text x="590" y="455" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Execution Agent</text>
+  <text x="590" y="472" font-family="Arial, sans-serif" font-size="10" fill="#fde68a" text-anchor="middle">Routing de alertas</text>
+  
+  <!-- Threat Categories -->
+  <rect x="500" y="510" width="180" height="130" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="590" y="535" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#e2e8f0" text-anchor="middle">Categorías de Amenaza</text>
+  <text x="515" y="558" font-family="Arial, sans-serif" font-size="10" fill="#ef4444">● Amenaza directa (0.40)</text>
+  <text x="515" y="575" font-family="Arial, sans-serif" font-size="10" fill="#f97316">● Coordinación ataque (0.30)</text>
+  <text x="515" y="592" font-family="Arial, sans-serif" font-size="10" fill="#eab308">● Llamada violencia (0.20)</text>
+  <text x="515" y="609" font-family="Arial, sans-serif" font-size="10" fill="#a855f7">● Glorif. terrorismo (0.15)</text>
+  <text x="515" y="626" font-family="Arial, sans-serif" font-size="10" fill="#3b82f6">● Reclutamiento (0.10)</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- LAYER 4: Data Storage -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="730" y="80" width="180" height="580" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1" opacity="0.5"/>
+  <text x="820" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="middle">💾 ALMACENAMIENTO</text>
+  
+  <!-- PostgreSQL -->
+  <rect x="750" y="130" width="140" height="80" rx="8" fill="url(#boxGrad5)"/>
+  <text x="820" y="158" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">PostgreSQL 16</text>
+  <text x="820" y="178" font-family="Arial, sans-serif" font-size="9" fill="#fca5a5" text-anchor="middle">Alertas + Audit Logs</text>
+  <text x="820" y="193" font-family="Arial, sans-serif" font-size="9" fill="#fca5a5" text-anchor="middle">AES-256-GCM cifrado</text>
+  
+  <!-- Redis -->
+  <rect x="750" y="230" width="140" height="70" rx="8" fill="url(#boxGrad5)"/>
+  <text x="820" y="258" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Redis 7</text>
+  <text x="820" y="278" font-family="Arial, sans-serif" font-size="9" fill="#fca5a5" text-anchor="middle">Cache + Sessions</text>
+  <text x="820" y="290" font-family="Arial, sans-serif" font-size="9" fill="#fca5a5" text-anchor="middle">Rate Limit + Queue</text>
+  
+  <!-- Audit Chain -->
+  <rect x="750" y="320" width="140" height="60" rx="8" fill="#334155" stroke="#d97706" stroke-width="1"/>
+  <text x="820" y="345" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#d97706" text-anchor="middle">⛓️ Audit Chain</text>
+  <text x="820" y="365" font-family="Arial, sans-serif" font-size="9" fill="#94a3b8" text-anchor="middle">Blockchain SHA-256</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- LAYER 5: Output / Distribution -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="940" y="80" width="240" height="580" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1" opacity="0.5"/>
+  <text x="1060" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="middle">📤 DISTRIBUCIÓN</text>
+  
+  <!-- Dashboard -->
+  <rect x="960" y="130" width="200" height="50" rx="8" fill="url(#boxGrad2)"/>
+  <text x="1060" y="153" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">📊 Dashboard React</text>
+  <text x="1060" y="170" font-family="Arial, sans-serif" font-size="10" fill="#a7f3d0" text-anchor="middle">Real-time WebSocket</text>
+  
+  <!-- API -->
+  <rect x="960" y="195" width="200" height="50" rx="8" fill="url(#boxGrad2)"/>
+  <text x="1060" y="218" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">🔌 FastAPI REST</text>
+  <text x="1060" y="235" font-family="Arial, sans-serif" font-size="10" fill="#a7f3d0" text-anchor="middle">JWT + HttpOnly Cookies</text>
+  
+  <!-- PDF Reports -->
+  <rect x="960" y="260" width="200" height="50" rx="8" fill="url(#boxGrad2)"/>
+  <text x="1060" y="283" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">📄 Informes PDF</text>
+  <text x="1060" y="300" font-family="Arial, sans-serif" font-size="10" fill="#a7f3d0" text-anchor="middle">Cifrado PGP opcional</text>
+  
+  <!-- STIX/TAXII -->
+  <rect x="960" y="325" width="200" height="50" rx="8" fill="url(#boxGrad4)"/>
+  <text x="1060" y="348" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">🔗 STIX 2.1 / TAXII</text>
+  <text x="1060" y="365" font-family="Arial, sans-serif" font-size="10" fill="#c4b5fd" text-anchor="middle">NATO Bridge</text>
+  
+  <!-- SIEM -->
+  <rect x="960" y="390" width="200" height="50" rx="8" fill="url(#boxGrad4)"/>
+  <text x="1060" y="413" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">🖥️ SIEM Integration</text>
+  <text x="1060" y="430" font-family="Arial, sans-serif" font-size="10" fill="#c4b5fd" text-anchor="middle">Splunk / ELK / QRadar</text>
+  
+  <!-- Prometheus -->
+  <rect x="960" y="455" width="200" height="50" rx="8" fill="#334155"/>
+  <text x="1060" y="478" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#e2e8f0" text-anchor="middle">📈 Prometheus</text>
+  <text x="1060" y="495" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Métricas + Grafana</text>
+  
+  <!-- Push Notifications -->
+  <rect x="960" y="520" width="200" height="50" rx="8" fill="#334155"/>
+  <text x="1060" y="543" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#e2e8f0" text-anchor="middle">🔔 Push Notifications</text>
+  <text x="1060" y="560" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">WebPush API</text>
+  
+  <!-- PWA -->
+  <rect x="960" y="585" width="200" height="50" rx="8" fill="#334155"/>
+  <text x="1060" y="608" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#e2e8f0" text-anchor="middle">📱 PWA Offline</text>
+  <text x="1060" y="625" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Service Worker</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Arrows -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  
+  <!-- Sources → Collection -->
+  <line x1="200" y1="150" x2="270" y2="165" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="200" y1="215" x2="270" y2="165" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="200" y1="280" x2="270" y2="165" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="200" y1="345" x2="270" y2="165" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Collection → ML -->
+  <line x1="430" y1="340" x2="500" y2="160" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowhead-blue)"/>
+  <line x1="430" y1="340" x2="500" y2="237" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowhead-blue)"/>
+  <line x1="430" y1="340" x2="500" y2="307" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowhead-blue)"/>
+  
+  <!-- ML → Storage -->
+  <line x1="680" y1="160" x2="750" y2="170" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="680" y1="307" x2="750" y2="265" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Storage → Output -->
+  <line x1="890" y1="170" x2="960" y2="155" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="890" y1="265" x2="960" y2="220" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="890" y1="170" x2="960" y2="285" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="890" y1="170" x2="960" y2="350" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="890" y1="170" x2="960" y2="415" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Footer -->
+  <text x="600" y="685" font-family="Arial, sans-serif" font-size="10" fill="#334155" text-anchor="middle">VIGÍA v2.1 — Arquitectura de Misión Crítica — 7 Servicios Docker — Hardened Security</text>
+</svg>

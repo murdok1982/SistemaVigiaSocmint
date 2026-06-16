@@ -1,0 +1,84 @@
+name: VIGIA CI
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vigia_test
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: vigia_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: pytest tests/ -v --tb=short
+        env:
+          DATABASE_URL: postgresql+asyncpg://vigia_test:test_password@localhost:5432/vigia_test
+          REDIS_URL: redis://localhost:6379
+          VIGIA_ENV: development
+          JWT_SECRET_KEY: test_secret
+          VIGIA_MASTER_KEY: test_master_key
+          VIGIA_HMAC_KEY: test_hmac_key
+          HMAC_SECRET: test_hmac
+          VIGIA_HASH_SALT: test_salt
+          VIGIA_API_KEY: test_api_key
+          VIGIA_DISABLE_TRANSFORMERS: 'true'
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+
+  worker-test:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r requirements.txt
+      - run: python -c "from src.worker import WorkerSettings; print('Worker OK')"
+        env:
+          REDIS_URL: redis://localhost:6379
+          VIGIA_ENV: development
+
+  docker-build-all:
+    needs: [backend-test, frontend-build, worker-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build

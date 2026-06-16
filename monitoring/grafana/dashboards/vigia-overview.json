@@ -1,0 +1,47 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "vigia-overview",
+    "title": "VIGÍA System Overview",
+    "tags": ["vigia"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Alerts",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [{"expr": "vigia_alerts_total", "refId": "A"}]
+      },
+      {
+        "id": 2,
+        "title": "Alerts by Level",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {"expr": "vigia_alerts_by_level{level=\"ROJO\"}", "legendFormat": "ROJO", "refId": "A"},
+          {"expr": "vigia_alerts_by_level{level=\"NARANJA\"}", "legendFormat": "NARANJA", "refId": "B"},
+          {"expr": "vigia_alerts_by_level{level=\"AMARILLO\"}", "legendFormat": "AMARILLO", "refId": "C"},
+          {"expr": "vigia_alerts_by_level{level=\"VERDE\"}", "legendFormat": "VERDE", "refId": "D"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Pending Review",
+        "type": "gauge",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "targets": [{"expr": "vigia_alerts_pending", "refId": "A"}]
+      },
+      {
+        "id": 4,
+        "title": "System Uptime",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [{"expr": "vigia_uptime_seconds", "refId": "A"}]
+      }
+    ],
+    "schemaVersion": 30,
+    "version": 1
+  }
+}

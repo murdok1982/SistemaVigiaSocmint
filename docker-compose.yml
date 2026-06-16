@@ -1,59 +1,104 @@
-version: '3.8'
+# VIGIA - docker-compose hardenizado
+#
+# Politica de secretos:
+#   - Ningun secreto va literal en este archivo.
+#   - Toda variable sensible se referencia con ${VAR:?mensaje} para que
+#     docker-compose ABORTE el up si la variable no esta definida.
+#     Esto evita el caso "subi a prod con la password de ejemplo".
+#   - Las variables se cargan desde el archivo .env (no commiteado).
+#     Ver .env.example como plantilla.
+#
+# Politica de hardening:
+#   - cap_drop: [ALL] elimina TODAS las capabilities Linux por defecto.
+#   - security_opt: no-new-privileges impide setuid/setgid escalation.
+#   - read_only en api: el rootfs es inmutable; solo /app/logs y /app/models
+#     (volumes) son escribibles.
+#   - DB y Redis sin ports expuestos al host: solo accesibles dentro de
+#     vigia-net.
 
 services:
-  # Base de datos PostgreSQL
+  # ── PostgreSQL ─────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     container_name: vigia_db
     environment:
-      POSTGRES_USER: vigia
-      POSTGRES_PASSWORD: vigia_secure_password_change_me
-      POSTGRES_DB: vigia_db
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # Sin "ports": la BD NO se expone al host, solo a la red interna.
+    networks:
+      - vigia-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vigia"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
-  # Redis para caché y colas
+  # ── Redis ──────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: vigia_redis
-    command: redis-server --appendonly yes --requirepass redis_secure_password_change_me
+    # La password se inyecta por env y se referencia con $$ (escape compose).
+    command:
+      - "redis-server"
+      - "--appendonly"
+      - "yes"
+      - "--requirepass"
+      - "${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
+    # Sin "ports": Redis NO se expone al host.
+    networks:
+      - vigia-net
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
-  # Backend FastAPI
+  # ── Backend FastAPI ────────────────────────────────────────────────
   api:
     build:
       context: .
       dockerfile: Dockerfile.api
     container_name: vigia_api
     environment:
-      DATABASE_URL: postgresql+asyncpg://vigia:vigia_secure_password_change_me@db:5432/vigia_db
-      REDIS_URL: redis://:redis_secure_password_change_me@redis:6379
-      JWT_SECRET_KEY: change_me_with_secure_64char_key
-      VIGIA_MASTER_KEY: change_me_with_secure_32char_key
-      HMAC_SECRET: change_me_with_another_secure_key
-      VIGIA_ENV: production
+      # Construida a partir de POSTGRES_* para mantener una sola fuente
+      # de verdad para la password.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in .env (openssl rand -hex 32)}
+      VIGIA_MASTER_KEY: ${VIGIA_MASTER_KEY:?VIGIA_MASTER_KEY must be set in .env (openssl rand -hex 32)}
+      VIGIA_HMAC_KEY: ${VIGIA_HMAC_KEY:?VIGIA_HMAC_KEY must be set in .env (openssl rand -hex 32)}
+      HMAC_SECRET: ${HMAC_SECRET:?HMAC_SECRET must be set in .env (openssl rand -hex 32)}
+      VIGIA_HASH_SALT: ${VIGIA_HASH_SALT:?VIGIA_HASH_SALT must be set in .env}
+      VIGIA_API_KEY: ${VIGIA_API_KEY:?VIGIA_API_KEY must be set in .env}
+      VIGIA_ENV: ${VIGIA_ENV:-production}
+      VIGIA_LOG_LEVEL: ${VIGIA_LOG_LEVEL:-INFO}
+      VIGIA_ALLOWED_ORIGINS: ${VIGIA_ALLOWED_ORIGINS:-http://localhost:3000}
+      WORKERS: ${WORKERS:-4}
+      # Tokens opcionales de redes sociales / SIEM.
       TWITTER_BEARER_TOKEN: ${TWITTER_BEARER_TOKEN:-}
       REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
       REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+      SIEM_TYPE: ${SIEM_TYPE:-splunk}
+      SIEM_API_TOKEN: ${SIEM_API_TOKEN:-}
     ports:
       - "8000:8000"
     depends_on:
@@ -61,12 +106,31 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    networks:
+      - vigia-net
     volumes:
       - ./logs:/app/logs
       - ./models:/app/models
+    # rootfs inmutable: la imagen no puede ser modificada en runtime.
+    # /app/logs y /app/models siguen siendo escribibles porque son volumes.
+    read_only: true
+    # tmpfs para directorios que la stdlib o uvicorn pueden necesitar
+    # escribir aun con read_only:true.
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
-  # Frontend React (build estático servido por nginx)
+  # ── Frontend React (build estatico via nginx) ──────────────────────
   frontend:
     build:
       context: ./frontend
@@ -76,22 +140,111 @@ services:
       - "3000:80"
     depends_on:
       - api
+    networks:
+      - vigia-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
-  # (Opcional) Worker para procesamiento asíncrono
-  # worker:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.worker
-  #   container_name: vigia_worker
-  #   environment:
-  #     DATABASE_URL: postgresql+asyncpg://vigia:vigia_secure_password_change_me@db:5432/vigia_db
-  #     REDIS_URL: redis://:redis_secure_password_change_me@redis:6379
-  #   depends_on:
-  #     - db
-  #     - redis
-  #   restart: unless-stopped
+  # ── Prometheus ─────────────────────────────────────────────────────
+  # NOTA SEGURIDAD: El puerto 9090 NO debe exponerse al host en producción.
+  # En producción, eliminar "ports" y acceder solo via red interna o VPN.
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vigia_prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+    ports:
+      - "9090:9090"
+    networks:
+      - vigia-net
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  # ── Grafana ────────────────────────────────────────────────────────
+  # NOTA SEGURIDAD: El puerto 3001 NO debe exponerse al host en producción.
+  # En producción, eliminar "ports" y acceder solo via red interna o VPN.
+  # Requiere GRAFANA_ADMIN_PASSWORD fuerte (no "admin").
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vigia_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in .env}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - vigia-net
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  # ── Worker para procesamiento asincrono ────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: vigia_worker
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in .env}
+      VIGIA_MASTER_KEY: ${VIGIA_MASTER_KEY:?VIGIA_MASTER_KEY must be set in .env}
+      VIGIA_HMAC_KEY: ${VIGIA_HMAC_KEY:?VIGIA_HMAC_KEY must be set in .env}
+      HMAC_SECRET: ${HMAC_SECRET:?HMAC_SECRET must be set in .env}
+      VIGIA_HASH_SALT: ${VIGIA_HASH_SALT:?VIGIA_HASH_SALT must be set in .env}
+      VIGIA_API_KEY: ${VIGIA_API_KEY:?VIGIA_API_KEY must be set in .env}
+      VIGIA_ENV: ${VIGIA_ENV:-production}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - vigia-net
+    volumes:
+      - ./logs:/app/logs
+      - ./models:/app/models
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   postgres_data:
   redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  vigia-net:
+    driver: bridge
+    # Red interna del stack: no comparte tablas con otras redes del host.

@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" style="background:#0f172a">
+  <defs>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#ef4444;stop-opacity:0"/>
+    </linearGradient>
+    <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444"/>
+      <stop offset="100%" style="stop-color:#dc2626"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="1000" height="60" fill="#1e293b"/>
+  <text x="30" y="38" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">← Volver a la cola</text>
+  
+  <!-- Alert Header Card -->
+  <rect x="20" y="80" width="960" height="100" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <rect x="20" y="80" width="6" height="100" fill="#ef4444"/>
+  <rect x="20" y="80" width="960" height="100" rx="12" fill="url(#redGrad)"/>
+  
+  <!-- Shield icon -->
+  <g transform="translate(50, 105)">
+    <path d="M25 0 L50 8 L50 28 C50 40 42 52 25 60 C8 52 0 40 0 28 L0 8 Z" fill="#ef4444" opacity="0.3"/>
+    <path d="M25 10 L40 16 L40 28 C40 36 34 44 25 50 C16 44 10 36 10 28 L10 16 Z" fill="#ef4444"/>
+    <text x="25" y="35" font-family="Arial, sans-serif" font-size="16" fill="white" text-anchor="middle">!</text>
+  </g>
+  
+  <text x="120" y="120" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#ef4444">ROJO</text>
+  <text x="120" y="145" font-family="Arial, sans-serif" font-size="13" fill="#94a3b8">Twitter • 95.2% de riesgo</text>
+  
+  <rect x="850" y="110" width="100" height="30" rx="15" fill="#eab308" opacity="0.2"/>
+  <text x="900" y="130" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#eab308" text-anchor="middle">PENDIENTE</text>
+  
+  <!-- Content Section -->
+  <rect x="20" y="200" width="960" height="180" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  
+  <text x="40" y="230" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#e2e8f0">Contenido Completo</text>
+  
+  <rect x="40" y="245" width="920" height="80" rx="8" fill="#0f172a"/>
+  <text x="55" y="270" font-family="Arial, sans-serif" font-size="13" fill="#e2e8f0">"Coordinar el ataque para el viernes a primera hora. Punto de encuentro</text>
+  <text x="55" y="290" font-family="Arial, sans-serif" font-size="13" fill="#e2e8f0">en la plaza central. Traed el material necesario. Cuando llegue la señal,</text>
+  <text x="55" y="310" font-family="Arial, sans-serif" font-size="13" fill="#e2e8f0">todas las unidades ejecutan en simultáneo."</text>
+  
+  <text x="40" y="350" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Creado: 15/01/2024 10:30:45</text>
+  <text x="250" y="350" font-family="Arial, sans-serif" font-size="12" fill="#64748b">ID: abc123-def456-ghi789</text>
+  
+  <!-- Risk Score Bar -->
+  <rect x="20" y="400" width="960" height="60" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  
+  <text x="40" y="425" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8">Risk Score</text>
+  <text x="900" y="425" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#ef4444">95.2%</text>
+  <text x="940" y="425" font-family="Arial, sans-serif" font-size="10" fill="#ef4444">Crítico</text>
+  
+  <rect x="40" y="435" width="920" height="12" rx="6" fill="#334155"/>
+  <rect x="40" y="435" width="876" height="12" rx="6" fill="url(#progressGrad)"/>
+  
+  <!-- Indicators Section -->
+  <rect x="20" y="480" width="960" height="200" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  
+  <text x="40" y="510" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#e2e8f0">🛡️ Indicadores Detectados (3)</text>
+  
+  <!-- Indicator 1 -->
+  <rect x="40" y="525" width="920" height="45" rx="6" fill="#0f172a"/>
+  <rect x="50" y="535" width="130" height="22" rx="4" fill="#d97706" opacity="0.2"/>
+  <text x="60" y="550" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#d97706">coordinacion_ataque</text>
+  <text x="750" y="550" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Confianza: 92%</text>
+  <text x="50" y="565" font-family="Arial, sans-serif" font-size="11" fill="#e2e8f0">"coordinar el ataque" — Posible coordinación de ataque detectada</text>
+  
+  <!-- Indicator 2 -->
+  <rect x="40" y="580" width="920" height="45" rx="6" fill="#0f172a"/>
+  <rect x="50" y="590" width="130" height="22" rx="4" fill="#d97706" opacity="0.2"/>
+  <text x="60" y="605" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#d97706">coordinacion_ataque</text>
+  <text x="750" y="605" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Confianza: 88%</text>
+  <text x="50" y="620" font-family="Arial, sans-serif" font-size="11" fill="#e2e8f0">"punto de encuentro" — Posible coordinación de ataque detectada</text>
+  
+  <!-- Indicator 3 -->
+  <rect x="40" y="635" width="920" height="45" rx="6" fill="#0f172a"/>
+  <rect x="50" y="645" width="130" height="22" rx="4" fill="#d97706" opacity="0.2"/>
+  <text x="60" y="660" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#d97706">coordinacion_ataque</text>
+  <text x="750" y="660" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Confianza: 85%</text>
+  <text x="50" y="675" font-family="Arial, sans-serif" font-size="11" fill="#e2e8f0">"ejecutan en simultáneo" — Posible coordinación de ataque detectada</text>
+  
+  <!-- Analyst Action Panel -->
+  <rect x="20" y="700" width="960" height="150" rx="12" fill="#1e293b" stroke="#d97706" stroke-width="1" opacity="0.5"/>
+  
+  <text x="40" y="730" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#d97706">🛡️ Acción del Analista</text>
+  
+  <rect x="40" y="745" width="920" height="60" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="55" y="765" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Justificación de la decisión (mínimo 10 caracteres)...</text>
+  
+  <!-- Action buttons -->
+  <rect x="40" y="820" width="100" height="35" rx="6" fill="#ef4444"/>
+  <text x="90" y="842" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">🔴 Escalar</text>
+  
+  <rect x="155" y="820" width="100" height="35" rx="6" fill="#475569"/>
+  <text x="205" y="842" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">📁 Archivar</text>
+  
+  <rect x="270" y="820" width="130" height="35" rx="6" fill="#22c55e"/>
+  <text x="335" y="842" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">❌ Falso Positivo</text>
+</svg>

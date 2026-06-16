@@ -44,6 +44,11 @@ Thumbs.db
 .coverage
 htmlcov/
 
+# Modelos entrenados
+models/*.joblib
+models/*.pkl
+models/*.onnx
+
 # Frontend
 frontend/node_modules/
 frontend/dist/

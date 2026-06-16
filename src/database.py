@@ -3,37 +3,43 @@ Configuración de base de datos PostgreSQL con SQLAlchemy (async).
 Soporte para cifrado en reposo y auditoría.
 """
 import os
+import logging
 from typing import AsyncGenerator
 
-from sqlalchemy import Column, DateTime, String, Text, Integer, Boolean, Float, Enum as SQLEnum
+from sqlalchemy import Column, DateTime, String, Text, Integer, Boolean, Float, Enum as SQLEnum, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
+
+logger = logging.getLogger(__name__)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Configuración de motor de base de datos
 # ─────────────────────────────────────────────────────────────────────────────
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    "postgresql+asyncpg://vigia:vigia_secure@localhost:5432/vigia_db"
-)
+DATABASE_URL = os.environ.get("DATABASE_URL", None)
+if DATABASE_URL is None:
+    if os.environ.get("VIGIA_ENV", "development").lower() == "production":
+        raise RuntimeError("DATABASE_URL no está definida. Es obligatoria en producción.")
+    DATABASE_URL = "sqlite+aiosqlite:///./vigia.db"
 
 # Para desarrollo con SQLite (opcional)
 USE_SQLITE = os.environ.get("USE_SQLITE", "false").lower() == "true"
 if USE_SQLITE:
     DATABASE_URL = "sqlite+aiosqlite:///./vigia.db"
 
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,
-    pool_size=20,
-    max_overflow=10,
-    pool_timeout=30,
-    pool_recycle=1800,
-)
+_engine_kwargs: dict = {"echo": False}
+if not USE_SQLITE:
+    _engine_kwargs.update(
+        pool_size=20,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+    )
+
+engine = create_async_engine(DATABASE_URL, **_engine_kwargs)
 
 async_session = async_sessionmaker(
     engine,
@@ -72,7 +78,7 @@ class AlertModel(Base):
 
     # Estado
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDIENTE", index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     reviewed_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
@@ -87,7 +93,7 @@ class AuditLogModel(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
     session_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     agent: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     action_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
@@ -97,6 +103,7 @@ class AuditLogModel(Base):
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     analyst_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     hmac_signature: Mapped[str] = mapped_column(String(64), nullable=False)  # Integridad
+    chain_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class AnalystModel(Base):
@@ -114,9 +121,10 @@ class AnalystModel(Base):
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     mfa_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     failed_login_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    password_change_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
 
 class ThreatIntelFeed(Base):
@@ -129,8 +137,8 @@ class ThreatIntelFeed(Base):
     indicator_value: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     indicator_type: Mapped[str] = mapped_column(String(64), nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)
-    first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
-    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, index=True)
+    first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
@@ -140,7 +148,7 @@ class SystemMetricsModel(Base):
     __tablename__ = "system_metrics"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
     metric_name: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     metric_value: Mapped[float] = mapped_column(Float, nullable=False)
     tags: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
@@ -161,9 +169,64 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Inicializa la base de datos creando todas las tablas."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """
+    Inicializa la base de datos.
+
+    - En desarrollo (USE_SQLITE o VIGIA_ENV != 'production'): hace create_all
+      como fallback, idempotente.
+    - En producción: NO ejecuta create_all. Se asume que Alembic ya migró el
+      esquema. Solo siembra el admin si falta.
+    """
+    vigia_env = os.environ.get("VIGIA_ENV", "development").lower()
+    is_production = vigia_env == "production"
+
+    if not is_production or USE_SQLITE:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    await _bootstrap_admin_if_missing()
+
+
+async def _bootstrap_admin_if_missing() -> None:
+    """
+    Crea el admin inicial si no existe ningún usuario con role='admin'.
+    Requiere VIGIA_ADMIN_BOOTSTRAP_PASSWORD; si no está, log de WARNING y aborta.
+    El admin se crea con password_change_required=True.
+    """
+    from src.auth import hash_password  # import diferido para evitar ciclos
+
+    bootstrap_username = os.environ.get("VIGIA_ADMIN_BOOTSTRAP_USERNAME", "admin")
+    bootstrap_password = os.environ.get("VIGIA_ADMIN_BOOTSTRAP_PASSWORD")
+
+    async with async_session() as session:
+        result = await session.execute(
+            select(AnalystModel).where(AnalystModel.role == "admin")
+        )
+        existing_admin = result.scalar_one_or_none()
+        if existing_admin is not None:
+            return
+
+        if not bootstrap_password:
+            logger.warning(
+                "No existe ningún admin y VIGIA_ADMIN_BOOTSTRAP_PASSWORD no está "
+                "definida. NO se crea admin con contraseña vacía."
+            )
+            return
+
+        admin = AnalystModel(
+            username=bootstrap_username,
+            email=f"{bootstrap_username}@vigia.local",
+            full_name="Administrador VIGIA",
+            password_hash=hash_password(bootstrap_password),
+            role="admin",
+            clearance_level="TOP_SECRET",
+            is_active=True,
+            mfa_enabled=False,
+            password_change_required=True,
+        )
+        session.add(admin)
+        await session.commit()
+        logger.info("Admin bootstrap creado: %s", bootstrap_username)
 
 
 async def close_db() -> None:

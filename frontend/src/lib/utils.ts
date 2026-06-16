@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import type { RiskLevel } from './types'
+import type { AlertStatus, RiskLevel } from './types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -20,11 +20,32 @@ export const RISK_BG_CLASSES: Record<RiskLevel, string> = {
   ROJO:     'bg-red-500/10 text-red-400 border-red-500/30',
 }
 
+export const RISK_CARD_CLASSES: Record<RiskLevel, string> = {
+  VERDE:    'border-green-500 bg-green-500/10',
+  AMARILLO: 'border-yellow-500 bg-yellow-500/10',
+  NARANJA:  'border-orange-500 bg-orange-500/10',
+  ROJO:     'border-red-500 bg-red-500/10',
+}
+
+export const RISK_BADGE_CLASSES: Record<RiskLevel, string> = {
+  VERDE:    'bg-green-500/20 text-green-400',
+  AMARILLO: 'bg-yellow-500/20 text-yellow-400',
+  NARANJA:  'bg-orange-500/20 text-orange-400',
+  ROJO:     'bg-red-500/20 text-red-400',
+}
+
 export const RISK_LABELS: Record<RiskLevel, string> = {
   VERDE:    'Bajo',
   AMARILLO: 'Medio',
   NARANJA:  'Alto',
   ROJO:     'Crítico',
+}
+
+export const STATUS_TEXT_CLASSES: Record<AlertStatus, string> = {
+  PENDIENTE:      'text-yellow-400',
+  ESCALADA:       'text-red-400',
+  ARCHIVADA:      'text-slate-400',
+  FALSO_POSITIVO: 'text-green-400',
 }
 
 export function formatTimestamp(iso: string): string {

@@ -1,0 +1,22 @@
+FROM python:3.12-slim AS builder
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1 VIRTUAL_ENV=/opt/venv PATH="/opt/venv/bin:$PATH"
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+RUN python -m venv "$VIRTUAL_ENV"
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+FROM python:3.12-slim
+LABEL org.opencontainers.image.title="vigia-worker"
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 VIRTUAL_ENV=/opt/venv PATH="/opt/venv/bin:$PATH"
+RUN apt-get update && apt-get install -y --no-install-recommends libpq5 && rm -rf /var/lib/apt/lists/*
+RUN groupadd --system --gid 10001 vigia && useradd --system --uid 10001 --gid vigia --no-create-home --shell /usr/sbin/nologin vigia
+COPY --from=builder /opt/venv /opt/venv
+WORKDIR /app
+COPY --chown=vigia:vigia src/ ./src/
+COPY --chown=vigia:vigia models/ ./models/
+USER vigia
+EXPOSE 9101
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
+  CMD python -c "import redis, os; r = redis.Redis(host=os.environ.get('REDIS_HOST','redis'), port=int(os.environ.get('REDIS_PORT','6379')), password=os.environ.get('REDIS_PASSWORD',''), decode_responses=True); r.ping()" || exit 1
+CMD ["python", "-m", "arq", "src.worker.WorkerSettings"]

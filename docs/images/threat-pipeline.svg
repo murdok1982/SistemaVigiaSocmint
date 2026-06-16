@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 400" style="background:#0f172a">
+  <defs>
+    <linearGradient id="pipeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="mlGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="compGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="execGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="8" refX="12" refY="4" orient="auto">
+      <polygon points="0 0, 12 4, 0 8" fill="#475569"/>
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="500" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#e2e8f0" text-anchor="middle">Pipeline de Análisis de Amenazas — ML Multilingüe</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Step 1: Input -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="20" y="60" width="160" height="300" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+  <rect x="20" y="60" width="160" height="35" rx="10" fill="url(#pipeGrad)"/>
+  <text x="100" y="83" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">1. INPUT</text>
+  
+  <text x="35" y="115" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">Post de Red Social</text>
+  <rect x="30" y="125" width="140" height="60" rx="4" fill="#0f172a"/>
+  <text x="40" y="143" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0">"Coordinar el ataque</text>
+  <text x="40" y="157" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0">para el viernes...</text>
+  <text x="40" y="171" font-family="Arial, sans-serif" font-size="9" fill="#64748b">platform: twitter</text>
+  
+  <text x="35" y="205" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">Metadata:</text>
+  <text x="35" y="222" font-family="Arial, sans-serif" font-size="9" fill="#64748b">ID: abc123</text>
+  <text x="35" y="237" font-family="Arial, sans-serif" font-size="9" fill="#64748b">Lang: es</text>
+  <text x="35" y="252" font-family="Arial, sans-serif" font-size="9" fill="#64748b">Author: SHA-256</text>
+  <text x="35" y="267" font-family="Arial, sans-serif" font-size="9" fill="#64748b">Public: true</text>
+  
+  <rect x="30" y="285" width="140" height="25" rx="4" fill="#334155"/>
+  <text x="100" y="302" font-family="Arial, sans-serif" font-size="9" fill="#94a3b8" text-anchor="middle">author_id → hash_identifier()</text>
+  
+  <!-- Arrow -->
+  <line x1="180" y1="210" x2="210" y2="210" stroke="#475569" stroke-width="3" marker-end="url(#arrow)"/>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Step 2: ML Analysis -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="215" y="60" width="200" height="300" rx="10" fill="#1e293b" stroke="#8b5cf6" stroke-width="2"/>
+  <rect x="215" y="60" width="200" height="35" rx="10" fill="url(#mlGrad)"/>
+  <text x="315" y="83" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">2. ML ANALYSIS</text>
+  
+  <!-- Transformer -->
+  <rect x="225" y="105" width="180" height="45" rx="6" fill="#0f172a" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="235" y="122" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#c4b5fd">🧠 Transformer</text>
+  <text x="235" y="140" font-family="Arial, sans-serif" font-size="8" fill="#64748b">cosine_sim ≥ 0.55 → score</text>
+  
+  <!-- Keywords -->
+  <rect x="225" y="158" width="180" height="45" rx="6" fill="#0f172a" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="235" y="175" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#c4b5fd">🔤 Keywords + TF-IDF</text>
+  <text x="235" y="193" font-family="Arial, sans-serif" font-size="8" fill="#64748b">match → weight × confidence</text>
+  
+  <!-- NER -->
+  <rect x="225" y="211" width="180" height="45" rx="6" fill="#0f172a" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="235" y="228" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#c4b5fd">🏷️ NER spaCy</text>
+  <text x="235" y="246" font-family="Arial, sans-serif" font-size="8" fill="#64748b">PER, LOC, ORG, WEAPONS</text>
+  
+  <!-- Score calculation -->
+  <rect x="225" y="268" width="180" height="40" rx="6" fill="#8b5cf6" opacity="0.2"/>
+  <text x="315" y="285" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#c4b5fd" text-anchor="middle">Score = max(transformer, keyword)</text>
+  <text x="315" y="300" font-family="Arial, sans-serif" font-size="9" fill="#c4b5fd" text-anchor="middle">× bonus multi-cat × bonus NER</text>
+  
+  <!-- Arrow -->
+  <line x1="415" y1="210" x2="445" y2="210" stroke="#475569" stroke-width="3" marker-end="url(#arrow)"/>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Step 3: Compliance -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="450" y="60" width="170" height="300" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+  <rect x="450" y="60" width="170" height="35" rx="10" fill="url(#compGrad)"/>
+  <text x="535" y="83" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">3. COMPLIANCE</text>
+  
+  <text x="465" y="115" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">Verificaciones:</text>
+  
+  <rect x="460" y="125" width="150" height="28" rx="4" fill="#0f172a"/>
+  <text x="470" y="143" font-family="Arial, sans-serif" font-size="9" fill="#22c55e">✓ Contenido público</text>
+  
+  <rect x="460" y="160" width="150" height="28" rx="4" fill="#0f172a"/>
+  <text x="470" y="178" font-family="Arial, sans-serif" font-size="9" fill="#22c55e">✓ author_id hasheado</text>
+  
+  <rect x="460" y="195" width="150" height="28" rx="4" fill="#0f172a"/>
+  <text x="470" y="213" font-family="Arial, sans-serif" font-size="9" fill="#22c55e">✓ Score coherente</text>
+  
+  <rect x="460" y="230" width="150" height="28" rx="4" fill="#0f172a"/>
+  <text x="470" y="248" font-family="Arial, sans-serif" font-size="9" fill="#22c55e">✓ Acción proporcional</text>
+  
+  <rect x="460" y="270" width="150" height="40" rx="6" fill="#f59e0b" opacity="0.2"/>
+  <text x="535" y="287" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fbbf24" text-anchor="middle">Status: approved</text>
+  <text x="535" y="302" font-family="Arial, sans-serif" font-size="9" fill="#fbbf24" text-anchor="middle">issues: 0</text>
+  
+  <!-- Arrow -->
+  <line x1="620" y1="210" x2="650" y2="210" stroke="#475569" stroke-width="3" marker-end="url(#arrow)"/>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Step 4: Execution -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="655" y="60" width="160" height="300" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+  <rect x="655" y="60" width="160" height="35" rx="10" fill="url(#execGrad)"/>
+  <text x="735" y="83" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">4. EXECUTION</text>
+  
+  <text x="670" y="115" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">Decisión:</text>
+  
+  <rect x="665" y="125" width="140" height="35" rx="6" fill="#ef4444" opacity="0.2" stroke="#ef4444" stroke-width="1"/>
+  <text x="735" y="140" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#ef4444" text-anchor="middle">🔴 ROJO</text>
+  <text x="735" y="153" font-family="Arial, sans-serif" font-size="8" fill="#ef4444" text-anchor="middle">score: 0.952</text>
+  
+  <rect x="665" y="170" width="140" height="30" rx="4" fill="#0f172a"/>
+  <text x="675" y="189" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0">Action: escalate</text>
+  
+  <rect x="665" y="208" width="140" height="30" rx="4" fill="#0f172a"/>
+  <text x="675" y="227" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0">Priority: critical</text>
+  
+  <rect x="665" y="246" width="140" height="30" rx="4" fill="#0f172a"/>
+  <text x="675" y="265" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0">Human review: YES</text>
+  
+  <rect x="665" y="290" width="140" height="30" rx="4" fill="#10b981" opacity="0.2"/>
+  <text x="735" y="309" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#10b981" text-anchor="middle">→ Persistir en BD</text>
+  
+  <!-- Arrow -->
+  <line x1="815" y1="210" x2="845" y2="210" stroke="#475569" stroke-width="3" marker-end="url(#arrow)"/>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Step 5: Output -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="850" y="60" width="130" height="300" rx="10" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+  <rect x="850" y="60" width="130" height="35" rx="10" fill="#334155"/>
+  <text x="915" y="83" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">5. OUTPUT</text>
+  
+  <rect x="860" y="110" width="110" height="25" rx="4" fill="#0f172a"/>
+  <text x="915" y="127" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0" text-anchor="middle">📊 Dashboard</text>
+  
+  <rect x="860" y="145" width="110" height="25" rx="4" fill="#0f172a"/>
+  <text x="915" y="162" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0" text-anchor="middle">🔔 WebSocket</text>
+  
+  <rect x="860" y="180" width="110" height="25" rx="4" fill="#0f172a"/>
+  <text x="915" y="197" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0" text-anchor="middle">🔔 Push Notif</text>
+  
+  <rect x="860" y="215" width="110" height="25" rx="4" fill="#0f172a"/>
+  <text x="915" y="232" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0" text-anchor="middle">📄 PDF Report</text>
+  
+  <rect x="860" y="250" width="110" height="25" rx="4" fill="#0f172a"/>
+  <text x="915" y="267" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0" text-anchor="middle">🔗 STIX Export</text>
+  
+  <rect x="860" y="285" width="110" height="25" rx="4" fill="#0f172a"/>
+  <text x="915" y="302" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0" text-anchor="middle">🖥️ SIEM Forward</text>
+  
+  <rect x="860" y="320" width="110" height="25" rx="4" fill="#0f172a"/>
+  <text x="915" y="337" font-family="Arial, sans-serif" font-size="9" fill="#e2e8f0" text-anchor="middle">⛓️ Audit Chain</text>
+  
+  <!-- Footer -->
+  <text x="500" y="385" font-family="Arial, sans-serif" font-size="10" fill="#334155" text-anchor="middle">VIGÍA v2.1 — Pipeline: STRATEGY → RESEARCH → ML_ANALYSIS → COMPLIANCE → EXECUTION — Revisión humana obligatoria</text>
+</svg>

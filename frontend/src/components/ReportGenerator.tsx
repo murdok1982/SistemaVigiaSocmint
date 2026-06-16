@@ -1,17 +1,64 @@
 import { useState } from 'react'
-import { FileText, Download, Shield, Calendar, Mail } from 'lucide-react'
-import type { AlertListItem } from '@/lib/types'
+import { FileText, Download, Shield, Calendar, Mail, AlertCircle } from 'lucide-react'
+import { api } from '@/lib/api'
 
 export function ReportGenerator() {
   const [reportType, setReportType] = useState<'daily' | 'weekly' | 'custom'>('daily')
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
   const [generating, setGenerating] = useState(false)
+  const [classification, setClassification] = useState<string>('CONFIDENCIAL')
+  const [error, setError] = useState<string | null>(null)
+
+  function formatDate(d: Date): string {
+    return d.toISOString().split('T')[0]!
+  }
 
   const handleGenerate = async () => {
     setGenerating(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setGenerating(false)
-    alert('Informe generado (Integración con backend pendiente)')
+    setError(null)
+
+    try {
+      const today = new Date()
+      let date_from: string
+      let date_to: string
+
+      if (reportType === 'daily') {
+        date_from = formatDate(today)
+        date_to = formatDate(today)
+      } else if (reportType === 'weekly') {
+        const weekAgo = new Date(today)
+        weekAgo.setDate(weekAgo.getDate() - 7)
+        date_from = formatDate(weekAgo)
+        date_to = formatDate(today)
+      } else {
+        if (!dateRange.start || !dateRange.end) {
+          setError('Selecciona un rango de fechas válido')
+          setGenerating(false)
+          return
+        }
+        date_from = dateRange.start
+        date_to = dateRange.end
+      }
+
+      const blob = await api.generateReport({
+        date_from,
+        date_to,
+        classification,
+      })
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `informe-${reportType}-${date_to}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error generando el informe')
+    } finally {
+      setGenerating(false)
+    }
   }
 
   return (
@@ -22,8 +69,14 @@ export function ReportGenerator() {
           Generador de Informes Tácticos
         </h2>
 
+        {error && (
+          <div className="flex items-center gap-2 mb-4 p-3 rounded-md bg-red-500/10 border border-red-500/40 text-red-300 text-sm">
+            <AlertCircle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Configuración */}
           <div className="lg:col-span-2 space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Tipo de Informe</label>
@@ -104,7 +157,6 @@ export function ReportGenerator() {
             </div>
           </div>
 
-          {/* Opciones adicionales */}
           <div className="space-y-4">
             <div className="bg-slate-900 rounded-lg p-4 border border-slate-700">
               <h3 className="text-sm font-semibold text-slate-100 mb-3 flex items-center gap-2">
@@ -114,7 +166,14 @@ export function ReportGenerator() {
               <div className="space-y-2">
                 {['CONFIDENCIAL', 'SECRETO', 'TOP SECRET'].map((level) => (
                   <label key={level} className="flex items-center gap-2 text-sm text-slate-300">
-                    <input type="radio" name="clearance" className="text-amber-600" />
+                    <input
+                      type="radio"
+                      name="clearance"
+                      value={level}
+                      checked={classification === level}
+                      onChange={() => setClassification(level)}
+                      className="text-amber-600"
+                    />
                     {level}
                   </label>
                 ))}
@@ -150,7 +209,6 @@ export function ReportGenerator() {
         </div>
       </div>
 
-      {/* Plantillas */}
       <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
         <h3 className="text-sm font-semibold text-slate-100 mb-4">Plantillas Disponibles</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

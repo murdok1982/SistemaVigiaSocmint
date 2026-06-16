@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" style="background:#0f172a">
+  <defs>
+    <linearGradient id="mapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a5f"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Title -->
+  <text x="500" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#e2e8f0" text-anchor="middle">🗺️ Mapa Táctico — Distribución Geográfica de Alertas</text>
+  
+  <!-- Map area -->
+  <rect x="20" y="50" width="680" height="420" rx="12" fill="url(#mapGrad)" stroke="#334155" stroke-width="1"/>
+  
+  <!-- Simplified world map outlines -->
+  <g opacity="0.3" stroke="#334155" stroke-width="1" fill="none">
+    <!-- Europe -->
+    <path d="M340 150 L360 140 L380 145 L400 135 L420 140 L430 155 L420 170 L400 180 L380 175 L360 180 L340 170 Z"/>
+    <!-- Iberian Peninsula -->
+    <path d="M310 170 L340 165 L345 180 L335 195 L315 190 L305 180 Z" fill="#1e3a5f" stroke="#475569"/>
+    <!-- Africa -->
+    <path d="M340 200 L380 195 L400 220 L390 280 L360 300 L330 280 L320 240 L330 210 Z"/>
+    <!-- Americas -->
+    <path d="M120 120 L150 110 L170 130 L160 170 L140 200 L120 220 L100 200 L90 160 L100 130 Z"/>
+    <path d="M140 240 L160 250 L170 300 L160 350 L140 370 L120 350 L110 300 L120 260 Z"/>
+    <!-- Asia -->
+    <path d="M450 120 L520 110 L580 130 L600 160 L580 180 L540 190 L500 180 L460 170 L440 150 Z"/>
+  </g>
+  
+  <!-- Alert markers -->
+  <!-- Madrid - ROJO -->
+  <circle cx="320" cy="178" r="12" fill="#ef4444" opacity="0.3"/>
+  <circle cx="320" cy="178" r="8" fill="#ef4444" opacity="0.6"/>
+  <circle cx="320" cy="178" r="4" fill="#ef4444"/>
+  <text x="335" y="175" font-family="Arial, sans-serif" font-size="9" fill="#ef4444" font-weight="bold">ROJO ×3</text>
+  
+  <!-- London - NARANJA -->
+  <circle cx="350" cy="145" r="10" fill="#f97316" opacity="0.3"/>
+  <circle cx="350" cy="145" r="6" fill="#f97316" opacity="0.6"/>
+  <circle cx="350" cy="145" r="3" fill="#f97316"/>
+  <text x="362" y="143" font-family="Arial, sans-serif" font-size="9" fill="#f97316">NARANJA ×2</text>
+  
+  <!-- Paris - AMARILLO -->
+  <circle cx="360" cy="160" r="8" fill="#eab308" opacity="0.3"/>
+  <circle cx="360" cy="160" r="5" fill="#eab308" opacity="0.6"/>
+  <circle cx="360" cy="160" r="2.5" fill="#eab308"/>
+  
+  <!-- New York - NARANJA -->
+  <circle cx="145" cy="155" r="10" fill="#f97316" opacity="0.3"/>
+  <circle cx="145" cy="155" r="6" fill="#f97316" opacity="0.6"/>
+  <circle cx="145" cy="155" r="3" fill="#f97316"/>
+  <text x="155" y="153" font-family="Arial, sans-serif" font-size="9" fill="#f97316">NARANJA ×1</text>
+  
+  <!-- Moscow - ROJO -->
+  <circle cx="440" cy="135" r="10" fill="#ef4444" opacity="0.3"/>
+  <circle cx="440" cy="135" r="6" fill="#ef4444" opacity="0.6"/>
+  <circle cx="440" cy="135" r="3" fill="#ef4444"/>
+  <text x="450" y="133" font-family="Arial, sans-serif" font-size="9" fill="#ef4444">ROJO ×1</text>
+  
+  <!-- Beijing - AMARILLO -->
+  <circle cx="560" cy="155" r="8" fill="#eab308" opacity="0.3"/>
+  <circle cx="560" cy="155" r="5" fill="#eab308" opacity="0.6"/>
+  <circle cx="560" cy="155" r="2.5" fill="#eab308"/>
+  
+  <!-- Buenos Aires - VERDE -->
+  <circle cx="155" cy="340" r="8" fill="#22c55e" opacity="0.3"/>
+  <circle cx="155" cy="340" r="5" fill="#22c55e" opacity="0.6"/>
+  <circle cx="155" cy="340" r="2.5" fill="#22c55e"/>
+  
+  <!-- Cairo - VERDE -->
+  <circle cx="395" cy="215" r="8" fill="#22c55e" opacity="0.3"/>
+  <circle cx="395" cy="215" r="5" fill="#22c55e" opacity="0.6"/>
+  <circle cx="395" cy="215" r="2.5" fill="#22c55e"/>
+  
+  <!-- Legend -->
+  <rect x="40" y="400" width="200" height="55" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="55" y="418" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#e2e8f0">Leyenda de Riesgo</text>
+  <circle cx="55" cy="435" r="4" fill="#ef4444"/>
+  <text x="65" y="438" font-family="Arial, sans-serif" font-size="9" fill="#ef4444">ROJO (Crítico)</text>
+  <circle cx="145" cy="435" r="4" fill="#f97316"/>
+  <text x="155" y="438" font-family="Arial, sans-serif" font-size="9" fill="#f97316">NARANJA</text>
+  <circle cx="55" cy="450" r="4" fill="#eab308"/>
+  <text x="65" y="453" font-family="Arial, sans-serif" font-size="9" fill="#eab308">AMARILLO</text>
+  <circle cx="145" cy="450" r="4" fill="#22c55e"/>
+  <text x="155" y="453" font-family="Arial, sans-serif" font-size="9" fill="#22c55e">VERDE</text>
+  
+  <!-- Right panel: Stats by location -->
+  <rect x="720" y="50" width="260" height="420" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="850" y="78" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#e2e8f0" text-anchor="middle">📊 Alertas por Ubicación</text>
+  
+  <!-- Madrid -->
+  <rect x="740" y="95" width="220" height="55" rx="6" fill="#0f172a"/>
+  <text x="755" y="115" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#e2e8f0">Madrid, España</text>
+  <text x="755" y="135" font-family="Arial, sans-serif" font-size="10" fill="#64748b">Total: 15 alertas</text>
+  <rect x="880" y="105" width="30" height="16" rx="3" fill="#ef4444" opacity="0.2"/>
+  <text x="895" y="117" font-family="Arial, sans-serif" font-size="9" fill="#ef4444" text-anchor="middle">3</text>
+  <rect x="915" y="105" width="30" height="16" rx="3" fill="#f97316" opacity="0.2"/>
+  <text x="930" y="117" font-family="Arial, sans-serif" font-size="9" fill="#f97316" text-anchor="middle">5</text>
+  <rect x="880" y="125" width="30" height="16" rx="3" fill="#eab308" opacity="0.2"/>
+  <text x="895" y="137" font-family="Arial, sans-serif" font-size="9" fill="#eab308" text-anchor="middle">4</text>
+  <rect x="915" y="125" width="30" height="16" rx="3" fill="#22c55e" opacity="0.2"/>
+  <text x="930" y="137" font-family="Arial, sans-serif" font-size="9" fill="#22c55e" text-anchor="middle">3</text>
+  
+  <!-- London -->
+  <rect x="740" y="160" width="220" height="55" rx="6" fill="#0f172a"/>
+  <text x="755" y="180" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#e2e8f0">London, UK</text>
+  <text x="755" y="200" font-family="Arial, sans-serif" font-size="10" fill="#64748b">Total: 8 alertas</text>
+  <rect x="880" y="170" width="30" height="16" rx="3" fill="#f97316" opacity="0.2"/>
+  <text x="895" y="182" font-family="Arial, sans-serif" font-size="9" fill="#f97316" text-anchor="middle">2</text>
+  <rect x="915" y="170" width="30" height="16" rx="3" fill="#eab308" opacity="0.2"/>
+  <text x="930" y="182" font-family="Arial, sans-serif" font-size="9" fill="#eab308" text-anchor="middle">3</text>
+  <rect x="880" y="190" width="30" height="16" rx="3" fill="#22c55e" opacity="0.2"/>
+  <text x="895" y="202" font-family="Arial, sans-serif" font-size="9" fill="#22c55e" text-anchor="middle">3</text>
+  
+  <!-- New York -->
+  <rect x="740" y="225" width="220" height="55" rx="6" fill="#0f172a"/>
+  <text x="755" y="245" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#e2e8f0">New York, USA</text>
+  <text x="755" y="265" font-family="Arial, sans-serif" font-size="10" fill="#64748b">Total: 5 alertas</text>
+  <rect x="880" y="235" width="30" height="16" rx="3" fill="#f97316" opacity="0.2"/>
+  <text x="895" y="247" font-family="Arial, sans-serif" font-size="9" fill="#f97316" text-anchor="middle">1</text>
+  <rect x="915" y="235" width="30" height="16" rx="3" fill="#eab308" opacity="0.2"/>
+  <text x="930" y="247" font-family="Arial, sans-serif" font-size="9" fill="#eab308" text-anchor="middle">2</text>
+  <rect x="880" y="255" width="30" height="16" rx="3" fill="#22c55e" opacity="0.2"/>
+  <text x="895" y="267" font-family="Arial, sans-serif" font-size="9" fill="#22c55e" text-anchor="middle">2</text>
+  
+  <!-- Moscow -->
+  <rect x="740" y="290" width="220" height="55" rx="6" fill="#0f172a"/>
+  <text x="755" y="310" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#e2e8f0">Moscow, Rusia</text>
+  <text x="755" y="330" font-family="Arial, sans-serif" font-size="10" fill="#64748b">Total: 4 alertas</text>
+  <rect x="880" y="300" width="30" height="16" rx="3" fill="#ef4444" opacity="0.2"/>
+  <text x="895" y="312" font-family="Arial, sans-serif" font-size="9" fill="#ef4444" text-anchor="middle">1</text>
+  <rect x="915" y="300" width="30" height="16" rx="3" fill="#eab308" opacity="0.2"/>
+  <text x="930" y="312" font-family="Arial, sans-serif" font-size="9" fill="#eab308" text-anchor="middle">1</text>
+  <rect x="880" y="320" width="30" height="16" rx="3" fill="#22c55e" opacity="0.2"/>
+  <text x="895" y="332" font-family="Arial, sans-serif" font-size="9" fill="#22c55e" text-anchor="middle">2</text>
+  
+  <!-- Trend section -->
+  <rect x="740" y="360" width="220" height="95" rx="6" fill="#0f172a"/>
+  <text x="850" y="383" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#e2e8f0" text-anchor="middle">📈 Tendencia (24h)</text>
+  
+  <!-- Mini chart -->
+  <polyline points="760,430 780,425 800,420 820,415 840,425 860,410 880,405 900,415 920,420 940,410" 
+            fill="none" stroke="#d97706" stroke-width="2"/>
+  <polyline points="760,440 780,438 800,435 820,440 840,437 860,432 880,430 900,435 920,433 940,428" 
+            fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4"/>
+  
+  <text x="760" y="450" font-family="Arial, sans-serif" font-size="8" fill="#64748b">00:00</text>
+  <text x="850" y="450" font-family="Arial, sans-serif" font-size="8" fill="#64748b">12:00</text>
+  <text x="930" y="450" font-family="Arial, sans-serif" font-size="8" fill="#64748b">24:00</text>
+  
+  <!-- Footer -->
+  <text x="500" y="490" font-family="Arial, sans-serif" font-size="10" fill="#334155" text-anchor="middle">VIGÍA v2.1 — Mapa Táctico Geoespacial — Leaflet + OpenStreetMap</text>
+</svg>

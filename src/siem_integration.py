@@ -13,8 +13,6 @@ from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Configuración SIEM (desde variables de entorno)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -24,6 +22,7 @@ SIEM_PORT = int(os.environ.get("SIEM_PORT", "9997"))
 SIEM_API_ENDPOINT = os.environ.get("SIEM_API_ENDPOINT", "https://localhost:8088/services/collector")
 SIEM_API_TOKEN = os.environ.get("SIEM_API_TOKEN", "")
 SIEM_USE_TLS = os.environ.get("SIEM_USE_TLS", "false").lower() == "true"
+SIEM_CA_BUNDLE = os.environ.get("SIEM_CA_BUNDLE", "")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -92,8 +91,15 @@ async def send_to_splunk_hec(event_data: Dict[str, Any]) -> bool:
         "Content-Type": "application/json",
     }
 
+    # verify: si TLS está activo, usar el CA bundle si está definido; si no,
+    # confiar en el truststore del sistema. Si TLS está desactivado, no verificar.
+    if SIEM_USE_TLS:
+        verify_param: bool | str = SIEM_CA_BUNDLE if SIEM_CA_BUNDLE else True
+    else:
+        verify_param = False
+
     try:
-        async with httpx.AsyncClient(timeout=10.0, verify=not SIEM_USE_TLS) as client:
+        async with httpx.AsyncClient(timeout=10.0, verify=verify_param) as client:
             response = await client.post(SIEM_API_ENDPOINT, data=payload, headers=headers)
             response.raise_for_status()
             logger.info("SIEM: Evento enviado a Splunk HEC")
@@ -113,8 +119,13 @@ async def send_to_elk(event_data: Dict[str, Any]) -> bool:
     if SIEM_API_TOKEN:
         headers["Authorization"] = f"Bearer {SIEM_API_TOKEN}"
 
+    if SIEM_USE_TLS:
+        verify_param: bool | str = SIEM_CA_BUNDLE if SIEM_CA_BUNDLE else True
+    else:
+        verify_param = False
+
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, verify=verify_param) as client:
             response = await client.post(
                 f"{SIEM_API_ENDPOINT}/_bulk",
                 data=payload,

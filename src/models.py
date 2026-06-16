@@ -118,7 +118,7 @@ class AlertsResponse(BaseModel):
 class ReviewRequest(BaseModel):
     action: ReviewAction
     notes: str = Field(..., min_length=10, max_length=2000)
-    analyst_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[A-Za-z0-9_\-]+$")
+    analyst_id: Optional[str] = Field(None, min_length=3, max_length=64, pattern=r"^[A-Za-z0-9_\-]+$")
 
 
 class ReviewResponse(BaseModel):

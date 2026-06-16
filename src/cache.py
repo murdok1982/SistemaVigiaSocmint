@@ -15,7 +15,11 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 # Configuración de Redis
 # ─────────────────────────────────────────────────────────────────────────────
-REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
+REDIS_URL = os.environ.get("REDIS_URL", None)
+if REDIS_URL is None:
+    if os.environ.get("VIGIA_ENV", "development").lower() == "production":
+        raise RuntimeError("REDIS_URL no está definida. Es obligatoria en producción.")
+    REDIS_URL = "redis://localhost:6379"
 
 # Pool de conexiones global
 redis_pool: aioredis.ConnectionPool | None = None
@@ -112,9 +116,14 @@ async def cache_delete(key: str) -> None:
 async def cache_clear_pattern(pattern: str) -> None:
     """Elimina todas las claves que coincidan con un patrón."""
     redis = await get_redis()
-    keys = await redis.keys(f"cache:{pattern}")
-    if keys:
-        await redis.delete(*keys)
+    cursor = 0
+    full_pattern = f"cache:{pattern}"
+    while True:
+        cursor, keys = await redis.scan(cursor=cursor, match=full_pattern, count=100)
+        if keys:
+            await redis.delete(*keys)
+        if cursor == 0:
+            break
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -166,3 +175,57 @@ async def release_lock(lock_name: str) -> None:
     """Libera un lock distribuido."""
     redis = await get_redis()
     await redis.delete(f"lock:{lock_name}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Gestión de refresh tokens (revocación + rotación)
+# ─────────────────────────────────────────────────────────────────────────────
+def _refresh_jti_key(jti: str) -> str:
+    return f"refresh_jti:{jti}"
+
+
+def _refresh_user_key(analyst_id: str) -> str:
+    return f"refresh_user:{analyst_id}"
+
+
+async def register_refresh_jti(jti: str, analyst_id: str, ttl_seconds: int) -> None:
+    """Registra un refresh token jti en Redis con TTL y lo añade al set del analista."""
+    redis = await get_redis()
+    pipe = redis.pipeline()
+    pipe.setex(_refresh_jti_key(jti), ttl_seconds, analyst_id)
+    pipe.sadd(_refresh_user_key(analyst_id), jti)
+    pipe.expire(_refresh_user_key(analyst_id), ttl_seconds)
+    await pipe.execute()
+
+
+async def is_refresh_jti_valid(jti: str) -> Optional[str]:
+    """
+    Verifica si un jti es válido. Devuelve el analyst_id si lo es, None si no.
+    """
+    redis = await get_redis()
+    return await redis.get(_refresh_jti_key(jti))
+
+
+async def revoke_refresh_jti(jti: str, analyst_id: Optional[str] = None) -> None:
+    """Revoca un refresh token concreto y lo elimina del set del analista."""
+    redis = await get_redis()
+    pipe = redis.pipeline()
+    pipe.delete(_refresh_jti_key(jti))
+    if analyst_id:
+        pipe.srem(_refresh_user_key(analyst_id), jti)
+    await pipe.execute()
+
+
+async def revoke_all_refresh_for_user(analyst_id: str) -> int:
+    """Revoca todos los refresh tokens del analista. Devuelve cantidad revocada."""
+    redis = await get_redis()
+    user_key = _refresh_user_key(analyst_id)
+    jtis = await redis.smembers(user_key)
+    if not jtis:
+        return 0
+    pipe = redis.pipeline()
+    for jti in jtis:
+        pipe.delete(_refresh_jti_key(jti))
+    pipe.delete(user_key)
+    await pipe.execute()
+    return len(jtis)

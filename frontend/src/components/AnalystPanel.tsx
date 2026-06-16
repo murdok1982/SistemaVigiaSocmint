@@ -3,6 +3,9 @@ import type { ReviewAction } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Archive, Loader2, ShieldAlert, XCircle } from 'lucide-react'
 
+// NOTA: Este componente no se importa actualmente en ninguna ruta.
+// AlertDetail.tsx implementa su propio panel inline. Conservar para posible uso futuro.
+
 interface AnalystPanelProps {
   alertId: string
   onSubmit: (action: ReviewAction, notes: string, analystId: string) => Promise<void>

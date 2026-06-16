@@ -10,24 +10,39 @@ psycopg2-binary==2.9.10
 asyncpg==0.30.0
 alembic==1.14.0
 # Autenticación y seguridad
-python-jose[cryptography]==3.4.0
+PyJWT[crypto]==2.8.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.2.1
 python-multipart==0.0.20
+pyotp==2.9.0
 # Caché y rate limiting
 redis==5.2.1
 hiredis==3.1.0
-# ML y análisis
+arq==0.26
+# ML clásico
 scikit-learn==1.6.1
 numpy==2.2.4
 scipy==1.15.2
 joblib==1.4.2
+# ─── ML pesado: embeddings multilingües (CPU) ───────────────────────────────
+# Para entornos sin GPU/RAM exportar VIGIA_DISABLE_TRANSFORMERS=true y el sistema
+# caerá automáticamente al KeywordMLAnalyzer. La descarga del modelo
+# 'paraphrase-multilingual-MiniLM-L12-v2' (~470 MB) ocurre en el primer uso.
+sentence-transformers==3.0.1
+torch==2.4.0
+# ─── NER multilingüe ────────────────────────────────────────────────────────
+# Tras instalar spaCy, descargar el modelo:
+#     python -m spacy download xx_ent_wiki_sm
+# Si el modelo no está disponible, _extract_entities cae al fallback regex+kw.
+spacy>=3.7.5
+# ─── Generación de informes PDF + cifrado GPG opcional ──────────────────────
+reportlab==4.2.5
+python-gnupg==0.5.2
 # Utilidades
 python-dateutil==2.9.0
 pytz==2025.1
 # Logging y monitoreo
 structlog==25.1.0
+prometheus-client==0.21.1
 # Cifrado
 cryptography==44.0.0
-# Validación de configuración
-pydantic-settings==2.6.1

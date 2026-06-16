@@ -29,7 +29,7 @@ def sample_posts():
             id="test-1",
             platform="twitter",
             content="Voy a matarte, no escaparás de mí",
-            author_id_hash="abc123",
+            author_id_hash="a" * 64,
             timestamp=datetime.now(timezone.utc),
             url="https://twitter.com/test/status/1",
             is_public=True,
@@ -39,7 +39,7 @@ def sample_posts():
             id="test-2",
             platform="telegram",
             content="Coordinar el ataque el próximo viernes en el punto de encuentro habitual",
-            author_id_hash="def456",
+            author_id_hash="b" * 64,
             timestamp=datetime.now(timezone.utc),
             url="https://t.me/test/2",
             is_public=True,
@@ -49,7 +49,7 @@ def sample_posts():
             id="test-3",
             platform="reddit",
             content="Me gusta el café y leer libros",  # Inocuo
-            author_id_hash="ghi789",
+            author_id_hash="c" * 64,
             timestamp=datetime.now(timezone.utc),
             url="https://reddit.com/r/test/comments/3",
             is_public=True,
@@ -59,7 +59,7 @@ def sample_posts():
             id="test-4",
             platform="twitter",
             content="Hay que eliminar a todos los que piensan distinto, destruir el sistema",
-            author_id_hash="jkl012",
+            author_id_hash="d" * 64,
             timestamp=datetime.now(timezone.utc),
             url="https://twitter.com/test/status/4",
             is_public=True,
@@ -174,7 +174,7 @@ class TestModelIntegration:
         result = ml_analyzer.analyze_text(text)
         
         # Debe usar palabras clave de respaldo
-        assert len(result) > 0 or True  # Al menos no debe crashear
+        assert len(result) > 0
         
         # Restaurar
         ml_analyzer.models["amenaza_directa"] = original_model

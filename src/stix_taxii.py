@@ -11,8 +11,6 @@ from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Estructuras STIX 2.1 (simplificadas)
 # ─────────────────────────────────────────────────────────────────────────────

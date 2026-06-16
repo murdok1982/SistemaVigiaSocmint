@@ -2,8 +2,15 @@ export type RiskLevel = 'VERDE' | 'AMARILLO' | 'NARANJA' | 'ROJO'
 export type AlertStatus = 'PENDIENTE' | 'ESCALADA' | 'ARCHIVADA' | 'FALSO_POSITIVO'
 export type ReviewAction = 'ESCALAR' | 'ARCHIVAR' | 'FALSO_POSITIVO'
 
+export type IndicatorType =
+  | 'llamada_violencia'
+  | 'coordinacion_ataque'
+  | 'glorificacion_terrorismo'
+  | 'reclutamiento'
+  | 'amenaza_directa'
+
 export interface Indicator {
-  type: string
+  type: IndicatorType
   value: string
   explanation: string
   confidence: number
@@ -45,7 +52,7 @@ export interface AlertsResponse {
 export interface ReviewRequest {
   action: ReviewAction
   notes: string
-  analyst_id: string
+  analyst_id?: string | null
 }
 
 export interface ReviewResponse {

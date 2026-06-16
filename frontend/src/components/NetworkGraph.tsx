@@ -1,64 +1,169 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
+import CytoscapeComponent from 'react-cytoscapejs'
+import Cytoscape from 'cytoscape'
+import coseBilkent from 'cytoscape-cose-bilkent'
 import type { AlertListItem } from '@/lib/types'
 import { Network, Users, AlertTriangle } from 'lucide-react'
 
-// Grafo simulado
-interface GraphNode {
-  id: string
-  label: string
-  type: 'person' | 'alert' | 'platform'
-  risk?: string
+Cytoscape.use(coseBilkent)
+
+type ElementDefinition = Cytoscape.ElementDefinition
+
+function getRiskColor(level: string): string {
+  switch (level) {
+    case 'ROJO': return '#ef4444'
+    case 'NARANJA': return '#f97316'
+    case 'AMARILLO': return '#eab308'
+    default: return '#22c55e'
+  }
 }
 
-interface GraphEdge {
-  source: string
-  target: string
-  label: string
-}
+const STYLESHEET: Cytoscape.Stylesheet[] = [
+  {
+    selector: 'node[type="platform"]',
+    style: {
+      'background-color': '#3b82f6',
+      'label': 'data(label)',
+      'shape': 'round-rectangle',
+      'width': 80,
+      'height': 40,
+      'font-size': 10,
+      'color': '#e2e8f0',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'border-width': 2,
+      'border-color': '#60a5fa',
+    } as Cytoscape.Css.Node,
+  },
+  {
+    selector: 'node[type="alert"]',
+    style: {
+      'background-color': 'data(riskColor)',
+      'label': 'data(label)',
+      'shape': 'ellipse',
+      'width': 50,
+      'height': 50,
+      'font-size': 8,
+      'color': '#e2e8f0',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'border-width': 2,
+      'border-color': '#94a3b8',
+    } as Cytoscape.Css.Node,
+  },
+  {
+    selector: 'node[type="person"]',
+    style: {
+      'background-color': '#a855f7',
+      'label': 'data(label)',
+      'shape': 'diamond',
+      'width': 55,
+      'height': 55,
+      'font-size': 9,
+      'color': '#e2e8f0',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'border-width': 2,
+      'border-color': '#c084fc',
+    } as Cytoscape.Css.Node,
+  },
+  {
+    selector: 'edge',
+    style: {
+      'width': 1,
+      'line-color': '#475569',
+      'target-arrow-color': '#475569',
+      'target-arrow-shape': 'triangle',
+      'curve-style': 'bezier',
+      'label': 'data(label)',
+      'font-size': 7,
+      'color': '#64748b',
+      'text-rotation': 'autorotate',
+    } as Cytoscape.Css.Edge,
+  },
+]
 
 export function NetworkGraph({ alerts }: { alerts: AlertListItem[] }) {
-  const { nodes, edges } = useMemo(() => {
-    const nodes: GraphNode[] = []
-    const edges: GraphEdge[] = []
+  const cyRef = useRef<Cytoscape.Core | null>(null)
 
-    // Nodos de plataformas
-    const platforms = [...new Set(alerts.map(a => a.platform))]
-    platforms.forEach(p => {
-      nodes.push({ id: `plat-${p}`, label: p, type: 'platform' })
+  const elements = useMemo<ElementDefinition[]>(() => {
+    const elems: ElementDefinition[] = []
+    const platformSet = new Set<string>()
+
+    alerts.forEach((a) => platformSet.add(a.platform))
+
+    platformSet.forEach((p) => {
+      elems.push({
+        data: { id: `plat-${p}`, label: p, type: 'platform' },
+      })
     })
 
-    // Nodos de alertas
-    alerts.slice(0, 20).forEach((alert) => {
+    alerts.slice(0, 30).forEach((alert) => {
       const alertId = `alert-${alert.id.slice(0, 8)}`
-      nodes.push({
-        id: alertId,
-        label: `${alert.risk_level} ${(alert.risk_score * 100).toFixed(0)}%`,
-        type: 'alert',
-        risk: alert.risk_level,
+      elems.push({
+        data: {
+          id: alertId,
+          label: `${alert.risk_level} ${(alert.risk_score * 100).toFixed(0)}%`,
+          type: 'alert',
+          riskColor: getRiskColor(alert.risk_level),
+        },
       })
-      edges.push({
-        source: `plat-${alert.platform}`,
-        target: alertId,
-        label: alert.platform,
+      elems.push({
+        data: {
+          id: `e-plat-${alertId}`,
+          source: `plat-${alert.platform}`,
+          target: alertId,
+          label: alert.platform,
+        },
       })
     })
 
-    // Nodos simulados
-    nodes.push({ id: 'person-1', label: 'Entidad A', type: 'person' })
-    nodes.push({ id: 'person-2', label: 'Entidad B', type: 'person' })
-    edges.push({ source: 'person-1', target: 'alert-1', label: 'origen' })
-    edges.push({ source: 'person-2', target: 'alert-2', label: 'menciona' })
+    const personNodes = [
+      { id: 'person-1', label: 'Entidad A' },
+      { id: 'person-2', label: 'Entidad B' },
+      { id: 'person-3', label: 'Entidad C' },
+    ]
+    personNodes.forEach((p) => {
+      elems.push({ data: { id: p.id, label: p.label, type: 'person' } })
+    })
 
-    return { nodes, edges }
+    if (alerts.length > 0) {
+      elems.push({
+        data: {
+          id: 'e-p1',
+          source: 'person-1',
+          target: `alert-${alerts[0].id.slice(0, 8)}`,
+          label: 'origen',
+        },
+      })
+    }
+    if (alerts.length > 1) {
+      elems.push({
+        data: {
+          id: 'e-p2',
+          source: 'person-2',
+          target: `alert-${alerts[1].id.slice(0, 8)}`,
+          label: 'menciona',
+        },
+      })
+    }
+    if (alerts.length > 2) {
+      elems.push({
+        data: {
+          id: 'e-p3',
+          source: 'person-3',
+          target: `alert-${alerts[2].id.slice(0, 8)}`,
+          label: 'coordina',
+        },
+      })
+    }
+
+    return elems
   }, [alerts])
 
-  const getNodeColor = (type: string, risk?: string) => {
-    if (type === 'platform') return 'bg-blue-500/20 text-blue-400 border-blue-500'
-    if (type === 'person') return 'bg-purple-500/20 text-purple-400 border-purple-500'
-    if (risk === 'ROJO') return 'bg-red-500/20 text-red-400 border-red-500'
-    if (risk === 'NARANJA') return 'bg-orange-500/20 text-orange-400 border-orange-500'
-    return 'bg-yellow-500/20 text-yellow-400 border-yellow-500'
-  }
+  const platformCount = useMemo(() => new Set(alerts.map(a => a.platform)).size, [alerts])
+  const alertNodeCount = Math.min(alerts.length, 30)
+  const personCount = 3
 
   return (
     <div className="space-y-4">
@@ -69,37 +174,16 @@ export function NetworkGraph({ alerts }: { alerts: AlertListItem[] }) {
         </h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Visualización del grafo */}
-          <div className="lg:col-span-3 bg-slate-900 rounded-lg h-96 border border-slate-700 p-4 overflow-auto">
-            <div className="text-center mb-4">
-              <p className="text-slate-500 text-sm">Visualización de Grafos (Cytoscape.js/D3.js pendiente)</p>
-            </div>
-
-            <div className="space-y-2">
-              {nodes.map((node) => (
-                <span
-                  key={node.id}
-                  className={`inline-block px-3 py-1.5 rounded-full text-xs font-medium border ${getNodeColor(node.type, node.risk)} mr-2 mb-2`}
-                >
-                  {node.label}
-                </span>
-              ))}
-            </div>
-
-            <div className="mt-4 space-y-1">
-              <p className="text-xs text-slate-500 mb-2">Conexiones detectadas:</p>
-              {edges.map((edge, idx) => (
-                <div key={idx} className="text-xs text-slate-400">
-                  <span className="text-slate-300">{edge.source}</span>
-                  <span className="mx-2">→</span>
-                  <span className="text-slate-300">{edge.target}</span>
-                  <span className="text-slate-500 ml-2">({edge.label})</span>
-                </div>
-              ))}
-            </div>
+          <div className="lg:col-span-3 bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
+            <CytoscapeComponent
+              elements={elements}
+              style={{ width: '100%', height: '500px' }}
+              stylesheet={STYLESHEET}
+              layout={{ name: 'cose-bilkent', animate: true, randomize: true } as Cytoscape.LayoutOptions}
+              cy={(cy) => { cyRef.current = cy }}
+            />
           </div>
 
-          {/* Panel de control */}
           <div className="space-y-4">
             <div className="bg-slate-900 rounded-lg p-4 border border-slate-700">
               <h3 className="text-sm font-semibold text-slate-100 mb-3 flex items-center gap-2">
@@ -109,15 +193,15 @@ export function NetworkGraph({ alerts }: { alerts: AlertListItem[] }) {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Plataformas</span>
-                  <span className="text-slate-100">{nodes.filter(n => n.type === 'platform').length}</span>
+                  <span className="text-slate-100">{platformCount}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Alertas conectadas</span>
-                  <span className="text-slate-100">{nodes.filter(n => n.type === 'alert').length}</span>
+                  <span className="text-slate-100">{alertNodeCount}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Personas/Entidades</span>
-                  <span className="text-slate-100">{nodes.filter(n => n.type === 'person').length}</span>
+                  <span className="text-slate-100">{personCount}</span>
                 </div>
               </div>
             </div>

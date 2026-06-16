@@ -46,6 +46,7 @@ async def auth_headers():
 class TestAuthentication:
     """Pruebas de seguridad en autenticación."""
 
+    @pytest.mark.asyncio
     async def test_login_valid_credentials(self):
         async with httpx.AsyncClient(base_url=BASE_URL) as client:
             resp = await client.post("/api/auth/login", json={
@@ -57,6 +58,7 @@ class TestAuthentication:
             assert "access_token" in data
             assert "refresh_token" in data
 
+    @pytest.mark.asyncio
     async def test_login_invalid_credentials(self):
         async with httpx.AsyncClient(base_url=BASE_URL) as client:
             resp = await client.post("/api/auth/login", json={
@@ -65,6 +67,7 @@ class TestAuthentication:
             })
             assert resp.status_code == 401
 
+    @pytest.mark.asyncio
     async def test_jwt_tampering(self):
         """Detecta si el sistema valida la integridad del JWT."""
         # Token con payload modificado pero signature original
@@ -80,6 +83,7 @@ class TestAuthentication:
             )
             assert resp.status_code == 401
 
+    @pytest.mark.asyncio
     async def test_expired_token(self):
         """Verifica que tokens expirados sean rechazados."""
         expired_token = jwt.encode(
@@ -101,6 +105,7 @@ class TestAuthentication:
 class TestRateLimiting:
     """Pruebas de rate limiting y protección contra DoS."""
 
+    @pytest.mark.asyncio
     async def test_rate_limit_enforcement(self):
         """Verifica que el rate limit bloquee después de N peticiones."""
         async with httpx.AsyncClient(base_url=BASE_URL) as client:
@@ -112,6 +117,7 @@ class TestRateLimiting:
             assert resp.status_code == 429
             assert "Retry-After" in resp.headers
 
+    @pytest.mark.asyncio
     async def test_rate_limit_per_ip(self):
         """Verifica que el rate limit sea por IP, no global."""
         # Este test requiere múltiples IPs (difícil en test local)
@@ -124,6 +130,7 @@ class TestRateLimiting:
 class TestInjection:
     """Pruebas de inyección SQL, NoSQL, XSS, etc."""
 
+    @pytest.mark.asyncio
     async def test_sql_injection_login(self):
         """Prueba inyección SQL en login."""
         payloads = [
@@ -140,6 +147,7 @@ class TestInjection:
                 # Debe retornar 401, no 500 (error de BD)
                 assert resp.status_code in [400, 401, 422]
 
+    @pytest.mark.asyncio
     async def test_xss_in_alert_content(self):
         """Verifica que el contenido de alertas no ejecute XSS."""
         xss_payload = "<script>alert('XSS')</script>"
@@ -153,6 +161,7 @@ class TestInjection:
             # Verificar que no se almacene el script sin sanitizar
             assert xss_payload not in resp.text or resp.status_code == 400
 
+    @pytest.mark.asyncio
     async def test_log_injection(self):
         """Verifica que no se pueda inyectar en logs (CRLF)."""
         malicious_input = "test\n[INJECTED] Fake log entry"
@@ -168,6 +177,7 @@ class TestInjection:
 class TestClearanceLevels:
     """Pruebas de verificación de niveles de acceso."""
 
+    @pytest.mark.asyncio
     async def test_confidential_access_secret_endpoint(self):
         """Usuario CONFIDENTIAL no debe acceder a endpoints SECRET."""
         # Crear token con nivel CONFIDENTIAL
@@ -192,6 +202,7 @@ class TestClearanceLevels:
 class TestEncryption:
     """Pruebas de cifrado en reposo e integridad de logs."""
 
+    @pytest.mark.asyncio
     async def test_audit_log_hmac(self):
         """Verifica que los logs tengan HMAC válido."""
         async with httpx.AsyncClient(base_url=BASE_URL) as client:
@@ -201,6 +212,7 @@ class TestEncryption:
                 for log in logs:
                     assert "hmac_signature" in log or "hmac" in log
 
+    @pytest.mark.asyncio
     async def test_sensitive_data_encrypted(self):
         """Verifica que datos sensibles estén cifrados en BD."""
         # Requiere acceso directo a BD (test de integración)
@@ -213,6 +225,7 @@ class TestEncryption:
 class TestPerformance:
     """Pruebas de carga y rendimiento."""
 
+    @pytest.mark.asyncio
     async def test_concurrent_requests(self):
         """Simula 100 peticiones concurrentes."""
         async with httpx.AsyncClient(base_url=BASE_URL) as client:
@@ -225,6 +238,7 @@ class TestPerformance:
             success_count = sum(1 for r in responses if r.status_code == 200)
             assert success_count >= 95  # Al menos 95% éxito
 
+    @pytest.mark.asyncio
     async def test_large_payload_handling(self):
         """Verifica manejo de payloads grandes."""
         large_content = "x" * 10_000  # 10KB
@@ -243,6 +257,7 @@ class TestPerformance:
 class TestRBAC:
     """Pruebas de control de acceso basado en roles."""
 
+    @pytest.mark.asyncio
     async def test_analyst_cannot_create_users(self):
         """Analista no debe poder crear usuarios."""
         token = jwt.encode(

@@ -2,6 +2,9 @@ import type { AuditEntry, AuditFilters } from '@/lib/types'
 import { formatTimestamp } from '@/lib/utils'
 import { Download, Loader2 } from 'lucide-react'
 
+// NOTA: Este componente no se importa actualmente. AuditPage.tsx implementa
+// su propia tabla inline. Conservar como versión reutilizable con paginación y filtros.
+
 interface AuditLogProps {
   entries: AuditEntry[]
   isLoading: boolean

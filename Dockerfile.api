@@ -1,37 +1,101 @@
-FROM python:3.12-slim
+# syntax=docker/dockerfile:1.6
+# VIGIA Backend API - Multi-stage hardened image
+#
+# Decisiones de seguridad clave:
+#   - Multi-stage: el stage final no contiene compiladores ni headers de build.
+#   - Usuario no-root vigia (uid 10001) ejecuta el proceso.
+#   - Sin .env en la imagen: la app espera variables del entorno del contenedor.
+#   - HEALTHCHECK apunta al endpoint de liveness del backend.
+
+# ─────────────────────────────────────────────────────────────────────
+# Stage 1: builder - instala dependencias en un venv aislado
+# ─────────────────────────────────────────────────────────────────────
+FROM python:3.12-slim AS builder
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:$PATH"
+
+# Build deps necesarios para compilar wheels (psycopg, cryptography, etc.).
+# Estas no llegan a la imagen final.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        gcc \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv "$VIRTUAL_ENV"
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt
+
+# ─────────────────────────────────────────────────────────────────────
+# Stage 2: runtime - imagen final minima con venv copiado del builder
+# ─────────────────────────────────────────────────────────────────────
+FROM python:3.12-slim AS runtime
+
+# OCI image labels (estandar abierto, leidos por registries y scanners).
+LABEL org.opencontainers.image.title="vigia-api" \
+      org.opencontainers.image.description="VIGIA OSINT/SOCMINT FastAPI backend" \
+      org.opencontainers.image.source="https://github.com/vigia/SistemaVigiaSocmint" \
+      org.opencontainers.image.version="2.1.0" \
+      org.opencontainers.image.vendor="VIGIA System" \
+      org.opencontainers.image.licenses="Proprietary"
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:$PATH"
+
+# Solo runtime deps: libpq para psycopg, curl para HEALTHCHECK.
+# Nada de compiladores en el stage final.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libpq5 \
+        curl \
+        ca-certificates \
+        tini \
+    && rm -rf /var/lib/apt/lists/*
+
+# Usuario no-root con uid alto fijo (10001) para coincidir con el
+# securityContext del Deployment k8s y evitar choque con uids del host.
+RUN groupadd --system --gid 10001 vigia \
+    && useradd --system --uid 10001 --gid vigia --no-create-home --shell /usr/sbin/nologin vigia
+
+# Copiar venv ya instalado del builder.
+COPY --from=builder /opt/venv /opt/venv
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    libpq-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Copiar codigo y migraciones. NO se copia .env.example ni se renombra a .env:
+# las variables se inyectan via docker/k8s en runtime.
+COPY --chown=vigia:vigia src/ ./src/
+COPY --chown=vigia:vigia models/ ./models/
+COPY --chown=vigia:vigia migrations/ ./migrations/
+COPY --chown=vigia:vigia alembic.ini ./alembic.ini
+COPY --chown=vigia:vigia scripts/ ./scripts/
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Directorios escribibles por la app (montados como volumes en compose / k8s).
+RUN mkdir -p /app/logs /app/models /app/data \
+    && chown -R vigia:vigia /app/logs /app/models /app/data \
+    && chmod +x /app/scripts/entrypoint.sh
 
-# Copy source code
-COPY src/ ./src/
-COPY models/ ./models/
-COPY .env.example .env
+USER vigia
 
-# Create necessary directories
-RUN mkdir -p /app/logs /app/models /app/data
-
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
-
-# Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/api/health || exit 1
+# TODO: el endpoint /api/health/live debe existir en el backend (wave actual).
+# Si aun no esta disponible, el backend caera al fallback /api/health.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -fsS http://localhost:8000/api/health/live || exit 1
 
-# Run with multiple workers for production
-CMD ["uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# tini como PID 1 para reapear zombies y propagar senales correctamente.
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["/app/scripts/entrypoint.sh"]

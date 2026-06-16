@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" style="background:#0f172a">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1e293b"/>
+      <stop offset="100%" style="stop-color:#334155"/>
+    </linearGradient>
+    <linearGradient id="sidebarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e293b"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="220" height="800" fill="url(#sidebarGrad)"/>
+  <rect x="0" y="0" width="220" height="70" fill="#1e293b"/>
+  
+  <!-- Logo -->
+  <g transform="translate(20, 25)">
+    <path d="M20 0 L40 10 L40 30 L20 40 L0 30 L0 10 Z" fill="#d97706" opacity="0.9"/>
+    <circle cx="20" cy="20" r="8" fill="#0f172a"/>
+    <circle cx="20" cy="20" r="4" fill="#d97706"/>
+  </g>
+  <text x="70" y="45" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#e2e8f0">VIGÍA Monitor</text>
+  
+  <!-- Nav Items -->
+  <rect x="10" y="90" width="200" height="40" rx="6" fill="#334155"/>
+  <text x="50" y="115" font-family="Arial, sans-serif" font-size="14" fill="#e2e8f0">📊 Dashboard</text>
+  
+  <text x="50" y="165" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">📝 Auditoría</text>
+  <text x="50" y="205" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">👥 Administración</text>
+  
+  <!-- User section -->
+  <rect x="10" y="700" width="200" height="80" rx="6" fill="#1e293b"/>
+  <circle cx="40" cy="730" r="15" fill="#3b82f6"/>
+  <text x="35" y="735" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">A</text>
+  <text x="65" y="730" font-family="Arial, sans-serif" font-size="12" fill="#e2e8f0">admin</text>
+  <text x="65" y="748" font-family="Arial, sans-serif" font-size="10" fill="#64748b">TOP_SECRET</text>
+  <text x="50" y="770" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8">🚪 Cerrar sesión</text>
+  
+  <!-- Main Content Area -->
+  <rect x="220" y="0" width="980" height="800" fill="#0f172a"/>
+  
+  <!-- Header -->
+  <rect x="220" y="0" width="980" height="70" fill="url(#headerGrad)"/>
+  <text x="250" y="35" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#e2e8f0">Centro de Monitoreo Táctico</text>
+  <text x="250" y="55" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Sistema VIGÍA — Nivel: ESTATAL-MILITAR — Revisión humana obligatoria</text>
+  
+  <!-- Action buttons -->
+  <rect x="950" y="20" width="120" height="35" rx="6" fill="#d97706"/>
+  <text x="975" y="42" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">🚀 Lanzar Análisis</text>
+  
+  <rect x="1080" y="20" width="90" height="35" rx="6" fill="#334155"/>
+  <text x="1100" y="42" font-family="Arial, sans-serif" font-size="12" fill="#e2e8f0">📥 Exportar</text>
+  
+  <!-- Stats Cards Row -->
+  <g transform="translate(240, 90)">
+    <!-- Alertas Hoy -->
+    <rect x="0" y="0" width="150" height="80" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="15" y="25" font-family="Arial, sans-serif" font-size="11" fill="#64748b">🛡️ Alertas Hoy</text>
+    <text x="15" y="60" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#d97706">127</text>
+    
+    <!-- Pendientes -->
+    <rect x="165" y="0" width="150" height="80" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="180" y="25" font-family="Arial, sans-serif" font-size="11" fill="#64748b">⚠️ Pendientes</text>
+    <text x="180" y="60" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#ef4444">23</text>
+    
+    <!-- ROJO -->
+    <rect x="330" y="0" width="120" height="80" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="345" y="25" font-family="Arial, sans-serif" font-size="11" fill="#64748b">🔴 ROJO</text>
+    <text x="345" y="60" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#ef4444">5</text>
+    
+    <!-- NARANJA -->
+    <rect x="465" y="0" width="120" height="80" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="480" y="25" font-family="Arial, sans-serif" font-size="11" fill="#64748b">🟠 NARANJA</text>
+    <text x="480" y="60" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#f97316">12</text>
+    
+    <!-- AMARILLO -->
+    <rect x="600" y="0" width="120" height="80" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="615" y="25" font-family="Arial, sans-serif" font-size="11" fill="#64748b">🟡 AMARILLO</text>
+    <text x="615" y="60" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#eab308">18</text>
+    
+    <!-- VERDE -->
+    <rect x="735" y="0" width="120" height="80" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="750" y="25" font-family="Arial, sans-serif" font-size="11" fill="#64748b">🟢 VERDE</text>
+    <text x="750" y="60" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#22c55e">92</text>
+  </g>
+  
+  <!-- Tabs -->
+  <g transform="translate(240, 190)">
+    <rect x="0" y="0" width="120" height="35" rx="0" fill="transparent"/>
+    <text x="15" y="22" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#d97706">📋 Cola de Alertas</text>
+    <rect x="0" y="33" width="120" height="2" fill="#d97706"/>
+    
+    <text x="150" y="22" font-family="Arial, sans-serif" font-size="13" fill="#64748b">🗺️ Mapa Táctico</text>
+    <text x="280" y="22" font-family="Arial, sans-serif" font-size="13" fill="#64748b">🕸️ Grafos de Red</text>
+    <text x="410" y="22" font-family="Arial, sans-serif" font-size="13" fill="#64748b">📄 Informes</text>
+  </g>
+  
+  <!-- Alert Queue -->
+  <g transform="translate(240, 240)">
+    <!-- Search bar -->
+    <rect x="0" y="0" width="920" height="40" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="15" y="25" font-family="Arial, sans-serif" font-size="13" fill="#64748b">🔍 Buscar alertas...</text>
+    
+    <!-- Filter button -->
+    <rect x="780" y="5" width="80" height="30" rx="4" fill="#334155"/>
+    <text x="795" y="25" font-family="Arial, sans-serif" font-size="11" fill="#e2e8f0">⚙️ Filtros</text>
+    
+    <!-- Export buttons -->
+    <rect x="870" y="5" width="50" height="30" rx="4" fill="#334155"/>
+    <text x="882" y="25" font-family="Arial, sans-serif" font-size="11" fill="#e2e8f0">CSV</text>
+    
+    <!-- Alert Card 1 - ROJO -->
+    <rect x="0" y="55" width="920" height="100" rx="8" fill="#1e293b" stroke="#ef4444" stroke-width="2"/>
+    <rect x="0" y="55" width="4" height="100" fill="#ef4444"/>
+    
+    <rect x="15" y="70" width="55" height="22" rx="4" fill="#ef4444" opacity="0.2"/>
+    <text x="25" y="85" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#ef4444">ROJO</text>
+    
+    <rect x="80" y="70" width="60" height="22" rx="4" fill="#334155"/>
+    <text x="90" y="85" font-family="Arial, sans-serif" font-size="11" fill="#e2e8f0">Twitter</text>
+    
+    <rect x="150" y="70" width="80" height="22" rx="4" fill="#eab308" opacity="0.2"/>
+    <text x="160" y="85" font-family="Arial, sans-serif" font-size="11" fill="#eab308">PENDIENTE</text>
+    
+    <text x="15" y="115" font-family="Arial, sans-serif" font-size="13" fill="#e2e8f0">"Coordinar el ataque para el viernes a primera hora. Punto de encuentro en la plaza..."</text>
+    
+    <text x="15" y="140" font-family="Arial, sans-serif" font-size="11" fill="#64748b">🕐 Hace 2h</text>
+    <text x="120" y="140" font-family="Arial, sans-serif" font-size="11" fill="#64748b">⚠️ 95%</text>
+    <text x="200" y="140" font-family="Arial, sans-serif" font-size="11" fill="#64748b">🛡️ 3 indicadores</text>
+    
+    <!-- Alert Card 2 - NARANJA -->
+    <rect x="0" y="170" width="920" height="100" rx="8" fill="#1e293b" stroke="#f97316" stroke-width="2"/>
+    <rect x="0" y="170" width="4" height="100" fill="#f97316"/>
+    
+    <rect x="15" y="185" width="70" height="22" rx="4" fill="#f97316" opacity="0.2"/>
+    <text x="22" y="200" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#f97316">NARANJA</text>
+    
+    <rect x="95" y="185" width="60" height="22" rx="4" fill="#334155"/>
+    <text x="105" y="200" font-family="Arial, sans-serif" font-size="11" fill="#e2e8f0">Reddit</text>
+    
+    <rect x="165" y="185" width="80" height="22" rx="4" fill="#eab308" opacity="0.2"/>
+    <text x="175" y="200" font-family="Arial, sans-serif" font-size="11" fill="#eab308">PENDIENTE</text>
+    
+    <text x="15" y="230" font-family="Arial, sans-serif" font-size="13" fill="#e2e8f0">"Hay que eliminar a todos los que piensan distinto, destruir el sistema desde dentro..."</text>
+    
+    <text x="15" y="255" font-family="Arial, sans-serif" font-size="11" fill="#64748b">🕐 Hace 4h</text>
+    <text x="120" y="255" font-family="Arial, sans-serif" font-size="11" fill="#64748b">⚠️ 68%</text>
+    <text x="200" y="255" font-family="Arial, sans-serif" font-size="11" fill="#64748b">🛡️ 2 indicadores</text>
+    
+    <!-- Alert Card 3 - AMARILLO -->
+    <rect x="0" y="285" width="920" height="100" rx="8" fill="#1e293b" stroke="#eab308" stroke-width="2"/>
+    <rect x="0" y="285" width="4" height="100" fill="#eab308"/>
+    
+    <rect x="15" y="300" width="75" height="22" rx="4" fill="#eab308" opacity="0.2"/>
+    <text x="22" y="315" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#eab308">AMARILLO</text>
+    
+    <rect x="100" y="300" width="75" height="22" rx="4" fill="#334155"/>
+    <text x="108" y="315" font-family="Arial, sans-serif" font-size="11" fill="#e2e8f0">Telegram</text>
+    
+    <rect x="185" y="300" width="80" height="22" rx="4" fill="#eab308" opacity="0.2"/>
+    <text x="195" y="315" font-family="Arial, sans-serif" font-size="11" fill="#eab308">PENDIENTE</text>
+    
+    <text x="15" y="345" font-family="Arial, sans-serif" font-size="13" fill="#e2e8f0">"Únete a nosotros, buscamos hermanos comprometidos para la causa. Contacta si estás..."</text>
+    
+    <text x="15" y="370" font-family="Arial, sans-serif" font-size="11" fill="#64748b">🕐 Hace 6h</text>
+    <text x="120" y="370" font-family="Arial, sans-serif" font-size="11" fill="#64748b">⚠️ 42%</text>
+    <text x="200" y="370" font-family="Arial, sans-serif" font-size="11" fill="#64748b">🛡️ 1 indicador</text>
+    
+    <!-- Pagination -->
+    <g transform="translate(350, 410)">
+      <rect x="0" y="0" width="30" height="30" rx="4" fill="#334155"/>
+      <text x="12" y="20" font-family="Arial, sans-serif" font-size="12" fill="#e2e8f0">‹</text>
+      
+      <rect x="40" y="0" width="30" height="30" rx="4" fill="#d97706"/>
+      <text x="52" y="20" font-family="Arial, sans-serif" font-size="12" fill="white">1</text>
+      
+      <rect x="80" y="0" width="30" height="30" rx="4" fill="#334155"/>
+      <text x="92" y="20" font-family="Arial, sans-serif" font-size="12" fill="#e2e8f0">2</text>
+      
+      <rect x="120" y="0" width="30" height="30" rx="4" fill="#334155"/>
+      <text x="132" y="20" font-family="Arial, sans-serif" font-size="12" fill="#e2e8f0">3</text>
+      
+      <text x="170" y="20" font-family="Arial, sans-serif" font-size="12" fill="#64748b">...</text>
+      
+      <rect x="200" y="0" width="30" height="30" rx="4" fill="#334155"/>
+      <text x="212" y="20" font-family="Arial, sans-serif" font-size="12" fill="#e2e8f0">7</text>
+      
+      <rect x="240" y="0" width="30" height="30" rx="4" fill="#334155"/>
+      <text x="252" y="20" font-family="Arial, sans-serif" font-size="12" fill="#e2e8f0">›</text>
+    </g>
+  </g>
+  
+  <!-- Footer watermark -->
+  <text x="700" y="780" font-family="Arial, sans-serif" font-size="10" fill="#334155" text-anchor="middle">VIGÍA v2.1 — Sistema OSINT/SOCMINT de Grado Militar</text>
+</svg>

@@ -1,4 +1,4 @@
-# VIGÍA Military System - Kubernetes Deployment
+# VIGIA Military System - Kubernetes Deployment
 # Nivel: ESTATAL-MILITAR
 # Requiere: kubectl, cluster K8s, Ingress Controller
 
@@ -13,7 +13,9 @@ metadata:
 
 ---
 # ─────────────────────────────────────────────────────────────────────
-# ConfigMap para configuración
+# ConfigMap - SOLO configuracion no sensible.
+# Cualquier valor sensible (claves, tokens, passwords) DEBE vivir
+# en un Secret, nunca aqui.
 # ─────────────────────────────────────────────────────────────────────
 apiVersion: v1
 kind: ConfigMap
@@ -22,10 +24,7 @@ metadata:
   namespace: vigia-system
 data:
   VIGIA_ENV: "production"
-  JWT_SECRET_KEY: "CHANGE_ME_SECURE_64CHAR_KEY"
-  VIGIA_MASTER_KEY: "CHANGE_ME_32CHAR_KEY"
-  VIGIA_HMAC_KEY: "CHANGE_ME_HMAC_KEY"
-  REDIS_URL: "redis://redis-service:6379"
+  VIGIA_LOG_LEVEL: "INFO"
   VIGIA_ALLOWED_ORIGINS: "https://vigia.gov.int"
   SIEM_TYPE: "splunk"
   ENABLE_MAP_VIEW: "true"
@@ -37,27 +36,77 @@ data:
 
 ---
 # ─────────────────────────────────────────────────────────────────────
-# Secret (base64 encoded - usar kubectl create secret en producción)
+# Secret - PLANTILLA UNICAMENTE
+#
+# IMPORTANTE - LEER ANTES DE APLICAR:
+#
+#   1. Este manifest NO debe contener secretos reales en el repositorio.
+#      Los placeholders <REPLACE_WITH_*> existen para que el operador
+#      sepa que valor falta, no para aplicarse tal cual.
+#
+#   2. En produccion, gestionar este Secret con UNO de:
+#        - bitnami-labs/sealed-secrets (ver k8s/sealed-secret-template.yaml)
+#        - external-secrets-operator (Vault / AWS Secrets Manager / GCP SM)
+#        - HashiCorp Vault Agent Injector
+#        - SOPS + git-crypt para edicion controlada
+#
+#   3. Para un bootstrap manual de emergencia:
+#        kubectl -n vigia-system create secret generic vigia-secrets \
+#          --from-literal=POSTGRES_PASSWORD="$(openssl rand -hex 32)" \
+#          --from-literal=JWT_SECRET_KEY="$(openssl rand -hex 32)" \
+#          --from-literal=VIGIA_MASTER_KEY="$(openssl rand -hex 32)" \
+#          --from-literal=VIGIA_HMAC_KEY="$(openssl rand -hex 32)" \
+#          --from-literal=HMAC_SECRET="$(openssl rand -hex 32)" \
+#          --from-literal=REDIS_PASSWORD="$(openssl rand -hex 32)" \
+#          --from-literal=DATABASE_URL="postgresql+asyncpg://vigia:<pwd>@postgres-service:5432/vigia_db" \
+#          --from-literal=TWITTER_BEARER_TOKEN="..." ...
+#
+#   4. Generar claves criptograficas con: openssl rand -hex 32
+#
+#   5. Dejar este manifest con secretos reales committeados al repo
+#      es una violacion de la politica de seguridad.
+#
+# Se usa stringData (no data) para evitar el error de manifests previos
+# donde "CHANGE_ME_BASE64_ENCODED" no era base64 valido y rompia el apply.
+# Kubernetes codifica automaticamente los valores de stringData a base64.
 # ─────────────────────────────────────────────────────────────────────
 apiVersion: v1
 kind: Secret
 metadata:
   name: vigia-secrets
   namespace: vigia-system
+  annotations:
+    vigia.gov.int/template: "true"
+    vigia.gov.int/managed-by: "REPLACE_WITH_SEALED_SECRETS_OR_VAULT"
 type: Opaque
-data:
-  # Valores en base64: echo -n "value" | base64
-  DATABASE_URL: cG9zdGdyZXNxbDovL3ZpZ2lhOnZpZ2lhQHN5c3RlbS1kYi52aWdpYS1zeXN0ZW06NTQzMg==  # Cambiar!
-  REDIS_PASSWORD: CHANGE_ME_BASE64_ENCODED
-  JWT_SECRET_KEY: CHANGE_ME_BASE64_ENCODED
-  VIGIA_MASTER_KEY: CHANGE_ME_BASE64_ENCODED
-  HMAC_SECRET: CHANGE_ME_BASE64_ENCODED
-  TWITTER_BEARER_TOKEN: CHANGE_ME_BASE64_ENCODED
-  REDDIT_CLIENT_ID: CHANGE_ME_BASE64_ENCODED
-  REDDIT_CLIENT_SECRET: CHANGE_ME_BASE64_ENCODED
-  TELEGRAM_BOT_TOKEN: CHANGE_ME_BASE64_ENCODED
-  META_ACCESS_TOKEN: CHANGE_ME_BASE64_ENCODED
-  SIEM_API_TOKEN: CHANGE_ME_BASE64_ENCODED
+stringData:
+  # PostgreSQL
+  POSTGRES_PASSWORD: "<REPLACE_WITH_64CHAR_RANDOM_HEX>"
+  DATABASE_URL: "postgresql+asyncpg://vigia:<REPLACE_WITH_POSTGRES_PASSWORD>@postgres-service:5432/vigia_db"
+
+  # Redis
+  REDIS_PASSWORD: "<REPLACE_WITH_64CHAR_RANDOM_HEX>"
+  REDIS_URL: "redis://:<REPLACE_WITH_REDIS_PASSWORD>@redis-service:6379"
+
+  # Crypto
+  JWT_SECRET_KEY: "<REPLACE_WITH_64CHAR_RANDOM_HEX>"
+  VIGIA_MASTER_KEY: "<REPLACE_WITH_64CHAR_RANDOM_HEX>"
+  VIGIA_HMAC_KEY: "<REPLACE_WITH_64CHAR_RANDOM_HEX>"
+  HMAC_SECRET: "<REPLACE_WITH_64CHAR_RANDOM_HEX>"
+  VIGIA_HASH_SALT: "<REPLACE_WITH_32CHAR_RANDOM_HEX>"
+  VIGIA_API_KEY: "<REPLACE_WITH_API_KEY>"
+
+  # Social media tokens
+  TWITTER_BEARER_TOKEN: "<REPLACE_OR_LEAVE_EMPTY>"
+  REDDIT_CLIENT_ID: "<REPLACE_OR_LEAVE_EMPTY>"
+  REDDIT_CLIENT_SECRET: "<REPLACE_OR_LEAVE_EMPTY>"
+  TELEGRAM_BOT_TOKEN: "<REPLACE_OR_LEAVE_EMPTY>"
+  META_ACCESS_TOKEN: "<REPLACE_OR_LEAVE_EMPTY>"
+
+  # SIEM / TAXII
+  SIEM_API_TOKEN: "<REPLACE_OR_LEAVE_EMPTY>"
+  TAXII_API_KEY: "<REPLACE_OR_LEAVE_EMPTY>"
+  EUROPOL_API_KEY: "<REPLACE_OR_LEAVE_EMPTY>"
 
 ---
 # ─────────────────────────────────────────────────────────────────────
@@ -191,13 +240,14 @@ spec:
     metadata:
       labels:
         app: vigia-api
-        version: "2.0"
+        version: "2.1"
     spec:
       serviceAccountName: vigia-api-sa
       securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        runAsNonRoot: true
       containers:
       - name: api
         image: vigia-backend:latest
@@ -218,13 +268,13 @@ spec:
             cpu: "1000m"
         livenessProbe:
           httpGet:
-            path: /api/health
+            path: /api/health/live
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 15
         readinessProbe:
           httpGet:
-            path: /api/health
+            path: /api/health/ready
             port: 8000
           initialDelaySeconds: 10
           periodSeconds: 5
@@ -415,15 +465,17 @@ spec:
 
 ---
 # ─────────────────────────────────────────────────────────────────────
-# NetworkPolicy (Seguridad de red)
+# NetworkPolicy - API (permite ingress desde frontend, egress a DB/Redis/DNS/externo)
 # ─────────────────────────────────────────────────────────────────────
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: vigia-network-policy
+  name: vigia-api-net-policy
   namespace: vigia-system
 spec:
-  podSelector: {}
+  podSelector:
+    matchLabels:
+      app: vigia-api
   policyTypes:
   - Ingress
   - Egress
@@ -450,3 +502,109 @@ spec:
     ports:
     - protocol: TCP
       port: 6379
+  - ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  - ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# NetworkPolicy - PostgreSQL (solo acepta desde API)
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vigia-postgres-net-policy
+  namespace: vigia-system
+spec:
+  podSelector:
+    matchLabels:
+      app: vigia-postgres
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: vigia-api
+    ports:
+    - protocol: TCP
+      port: 5432
+  egress:
+  - ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# NetworkPolicy - Redis (solo acepta desde API)
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vigia-redis-net-policy
+  namespace: vigia-system
+spec:
+  podSelector:
+    matchLabels:
+      app: vigia-redis
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: vigia-api
+    ports:
+    - protocol: TCP
+      port: 6379
+  egress:
+  - ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# ─────────────────────────────────────────────────────────────────────
+# NetworkPolicy - Frontend (permite ingress desde Ingress, egress a API)
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vigia-frontend-net-policy
+  namespace: vigia-system
+spec:
+  podSelector:
+    matchLabels:
+      app: vigia-frontend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - ports:
+    - protocol: TCP
+      port: 80
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: vigia-api
+    ports:
+    - protocol: TCP
+      port: 8000
+  - ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
